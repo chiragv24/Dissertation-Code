@@ -23,16 +23,10 @@ It waits for a face, and then will light up his backpack when that face is visib
 import asyncio
 import time
 
-import collections
 import cozmo
-import cozmoclad
+from cozmo.util import degrees, distance_mm, speed_mmps
 from cozmoclad.clad.externalInterface import messageEngineToGame as messageEngineToGame
 from cozmoclad.clad.externalInterface import messageEngineToGame as messageGameToEngine
-
-# import cozmo.faces
-# from cozmo import event
-# from cozmo.faces import EvtFaceObserved
-
 
 __all__ = ['FACE_VISIBILITY_TIMEOUT',
            'FACIAL_EXPRESSION_UNKNOWN', 'FACIAL_EXPRESSION_NEUTRAL', 'FACIAL_EXPRESSION_HAPPY',
@@ -40,7 +34,15 @@ __all__ = ['FACE_VISIBILITY_TIMEOUT',
            'EvtErasedEnrolledFace', 'EvtFaceAppeared', 'EvtFaceDisappeared',
            'EvtFaceIdChanged', 'EvtFaceObserved', 'EvtFaceRenamed',
            'erase_all_enrolled_faces', 'erase_enrolled_face_by_id',
-           'update_enrolled_face_by_id']
+           'update_enrolled_face_by_id', 'Angle', 'degrees', 'radians',
+           'ImageBox',
+           'Distance', 'distance_mm', 'distance_inches', 'Matrix44',
+           'Pose', 'pose_quaternion', 'pose_z_angle',
+           'Position', 'Quaternion',
+           'Rotation', 'rotation_quaternion', 'rotation_z_angle',
+           'angle_z_to_quaternion',
+           'Speed', 'speed_mmps',
+           'Timeout', 'Vector2', 'Vector3']
 
 _clad_to_engine_anki = messageGameToEngine.Anki
 _clad_to_engine_cozmo = messageGameToEngine.Anki.Cozmo
@@ -49,7 +51,6 @@ _clad_to_game_anki = messageEngineToGame.Anki
 _clad_to_game_cozmo = messageEngineToGame.Anki.Cozmo
 _clad_to_game_iface = messageEngineToGame.Anki.Cozmo.ExternalInterface
 _clad_enum = _clad_to_engine_cozmo.ExecutableBehaviorType
-
 
 def greet(robot: cozmo.robot.Robot):
 # Move lift down and tilt the head up
@@ -80,5 +81,17 @@ def greet(robot: cozmo.robot.Robot):
 
         time.sleep(.1)
 
+def hcscenario1(robot: cozmo.robot.Robot):
+    # distanceFromUser = cozmo.util.Distance.distance_mm
+    distanceFromUser = distance_mm(50)
+    print(distanceFromUser.distance_mm)
+    face = None
+    if float(distanceFromUser.distance_mm) <= 1220:
+        robot.say_text("My bad, I will move back").wait_for_completed()
+        robot.drive_straight(distance_mm(-60), speed_mmps(50)).wait_for_completed()
+    else:
+        robot.say_text("Good, I´m not too close").wait_for_completed()
 
-cozmo.run_program(greet, use_viewer=True, force_viewer_on_top=True)
+
+cozmo.run_program(hcscenario1, use_viewer=True, force_viewer_on_top=True)
+
