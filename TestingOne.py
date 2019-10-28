@@ -21,11 +21,14 @@ It waits for a face, and then will light up his backpack when that face is visib
 '''
 
 import asyncio
+import cozmo.util
+import speech_recognition as sr
 import time
 import cozmo
 from cozmo.util import degrees, distance_mm, speed_mmps
 from cozmoclad.clad.externalInterface import messageEngineToGame as messageEngineToGame
 from cozmoclad.clad.externalInterface import messageEngineToGame as messageGameToEngine
+import subprocess
 
 __all__ = ['FACE_VISIBILITY_TIMEOUT',
            'FACIAL_EXPRESSION_UNKNOWN', 'FACIAL_EXPRESSION_NEUTRAL', 'FACIAL_EXPRESSION_HAPPY',
@@ -88,10 +91,17 @@ def hcscenario1(robot: cozmo.robot.Robot):
 
     while True:
         if face and face.is_visible:
-            distanceFromUser = distance_mm(100)
-            print(distanceFromUser.distance_mm)
-            action = robot.go_to_object(face, distanceFromUser)
-            action.wait_for_completed()
+            height = cozmo.util.ImageBox.height
+            print(getattr(cozmo.util.ImageBox))
+            print(height)
+            width = cozmo.util.ImageBox.width
+            return height
+            image = height * width
+            print(image)
+            # distanceFromUser = distance_mm(100)
+            # print(distanceFromUser.distance_mm)
+            # action = robot.go_to_object(face, distanceFromUser)
+            # action.wait_for_completed()
             # if float(distanceFromUser.distance_mm) <= 1220:
             #     robot.say_text("My bad, I will move back").wait_for_completed()
             #     robot.drive_straight(distance_mm(-60), speed_mmps(100)).wait_for_completed()
@@ -107,13 +117,16 @@ def hcscenario1(robot: cozmo.robot.Robot):
 
 
 def hcscenario3(robot: cozmo.robot.Robot):
-    # distanceFromUser = cozmo.util.Distance.distance_mm
+        r = sr.Recognizer()
+        mic = sr.Microphone()
+        with mic as source:
+            print("Please say something")
+            audio = r.listen(source)
+            command = r.recognize_google(audio)
+            print(command)
+            if (command == "stop"):
+                robot.drive_straight(distance_mm(-60), speed_mmps(100)).wait_for_completed()
 
-    robot.move_lift(-3)
-    robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
 
-    face = None
-
-
-cozmo.run_program(hcscenario2, use_viewer=True, force_viewer_on_top=True)
-
+# cozmo.run_program(hcscenaro3, use_viewer=True, force_viewer_on_top=True)
+cozmo.run_program(hcscenario1, use_viewer = True)
