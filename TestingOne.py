@@ -20,15 +20,16 @@ This is a script to show off faces, and how they are easy to use.
 It waits for a face, and then will light up his backpack when that face is visible.
 '''
 
+
+
 import asyncio
 import cozmo.util
-import speech_recognition as sr
 import time
 import cozmo
-from cozmo.util import degrees, distance_mm, speed_mmps
+from cozmo.util import distance_mm, speed_mmps
+import cozmo.faces
 from cozmoclad.clad.externalInterface import messageEngineToGame as messageEngineToGame
 from cozmoclad.clad.externalInterface import messageEngineToGame as messageGameToEngine
-import subprocess
 
 __all__ = ['FACE_VISIBILITY_TIMEOUT',
            'FACIAL_EXPRESSION_UNKNOWN', 'FACIAL_EXPRESSION_NEUTRAL', 'FACIAL_EXPRESSION_HAPPY',
@@ -86,18 +87,23 @@ def hcscenario1(robot: cozmo.robot.Robot):
 
     robot.move_lift(-3)
     robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
-
-    face = None
-
-    while True:
-        if face and face.is_visible:
-            height = cozmo.util.ImageBox.height
-            print(getattr(cozmo.util.ImageBox))
-            print(height)
-            width = cozmo.util.ImageBox.width
-            return height
-            image = height * width
-            print(image)
+    box = cozmo.util.ImageBox
+    width = getattr(box,"width")
+    return width
+   # #face = None
+    # height = cozmo.util.ImageBox.height
+    # #while True:
+    # #if face and face.is_visible:
+    #     print("helo")
+    #     # leftCoord = cozmo.util.ImageBox.top_left_x
+    #     # print(leftCoord)
+    #     height = cozmo.util.ImageBox.height
+    #     print(height)
+    #         # print(getattr(cozmo.util.ImageBox))
+    #     return height
+            # # width = cozmo.util.ImageBox.width
+            # # image = height * width
+            # # print(image)
             # distanceFromUser = distance_mm(100)
             # print(distanceFromUser.distance_mm)
             # action = robot.go_to_object(face, distanceFromUser)
@@ -107,25 +113,25 @@ def hcscenario1(robot: cozmo.robot.Robot):
             #     robot.drive_straight(distance_mm(-60), speed_mmps(100)).wait_for_completed()
             # else:
             #     robot.say_text("Good, I´m not too close").wait_for_completed()
-        else:
-            # robot.say_text("Sorry, no face found").wait_for_completed()
-            try:
-                face = robot.world.wait_for_observed_face(timeout=30)
-            except asyncio.TimeoutError:
-                print("Didn't find a face.")
-                return
+        # else:
+        #     # robot.say_text("Sorry, no face found").wait_for_completed()
+        #     try:
+        #         face = robot.world.wait_for_observed_face(timeout=30)
+        #     except asyncio.TimeoutError:
+              ##print("Didn't find a face.")
+        #         return
 
 
-def hcscenario3(robot: cozmo.robot.Robot):
-        r = sr.Recognizer()
-        mic = sr.Microphone()
-        with mic as source:
-            print("Please say something")
-            audio = r.listen(source)
-            command = r.recognize_google(audio)
-            print(command)
-            if (command == "stop"):
-                robot.drive_straight(distance_mm(-60), speed_mmps(100)).wait_for_completed()
+# def hcscenario3(robot: cozmo.robot.Robot):
+        # r = sr.Recognizer()
+        # mic = sr.Microphone()
+        # with mic as source:
+        #     print("Please say something")
+        #     audio = r.listen(source)
+        #     command = r.recognize_google(audio)
+        #     print(command)
+        #     if (command == "stop"):
+        #         robot.drive_straight(distance_mm(-60), speed_mmps(100)).wait_for_completed()
 
 
 # cozmo.run_program(hcscenaro3, use_viewer=True, force_viewer_on_top=True)
