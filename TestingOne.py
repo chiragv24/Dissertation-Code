@@ -6,6 +6,7 @@ from cozmo.util import distance_mm, speed_mmps
 import cozmo.faces
 from cozmoclad.clad.externalInterface import messageEngineToGame as messageEngineToGame
 from cozmoclad.clad.externalInterface import messageEngineToGame as messageGameToEngine
+import speech_recognition as sr
 
 _clad_to_engine_anki = messageGameToEngine.Anki
 _clad_to_engine_cozmo = messageGameToEngine.Anki.Cozmo
@@ -61,18 +62,16 @@ def hcscenario1(robot: cozmo.robot.Robot):
             return
 
 def hcscenario3(robot: cozmo.robot.Robot):
-        val1 = hcscenario1(robot)
-        print(val1)
-        # r = sr.Recognizer()
-        # mic = sr.Microphone()
-        # with mic as source:
-        #     print("Please say something")
-        #     audio = r.listen(source)
-        #     command = r.recognize_google(audio)
-        #     print(command)
-        #     if (command == "stop"):
-        #         robot.drive_straight(distance_mm(-60), speed_mmps(100)).wait_for_completed()
+        r = sr.Recognizer()
+        clip = sr.AudioFile("C:/Users/Chirag/Desktop/Cozmotest.wav")
+        with clip as source:
+            audio = r.record(source)
+            print("data loaded")
+            result = r.recognize_google(audio)
+            print(result)
+            if("stop" in result and "Cosmo" in result):
+                robot.drive_straight(distance_mm(-300), speed_mmps(100)).wait_for_completed()
+            else:
+                robot.say_text("Good to see that you want to play, what should we do").wait_for_completed()
 
-
-# cozmo.run_program(hcscenaro3, use_viewer=True, force_viewer_on_top=True)
-cozmo.run_program(hcscenario1, use_viewer = True)
+cozmo.run_program(hcscenario3)
