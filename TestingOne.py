@@ -1,27 +1,3 @@
-#!/usr/bin/env python3
-
-# Copyright (c) 2016 Anki, Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License in the file LICENSE.txt or at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-'''Wait for Cozmo to see a face, and then turn on his backpack light.
-
-This is a script to show off faces, and how they are easy to use.
-It waits for a face, and then will light up his backpack when that face is visible.
-'''
-
-
-
 import asyncio
 import cozmo.util
 import time
@@ -30,22 +6,6 @@ from cozmo.util import distance_mm, speed_mmps
 import cozmo.faces
 from cozmoclad.clad.externalInterface import messageEngineToGame as messageEngineToGame
 from cozmoclad.clad.externalInterface import messageEngineToGame as messageGameToEngine
-
-__all__ = ['FACE_VISIBILITY_TIMEOUT',
-           'FACIAL_EXPRESSION_UNKNOWN', 'FACIAL_EXPRESSION_NEUTRAL', 'FACIAL_EXPRESSION_HAPPY',
-           'FACIAL_EXPRESSION_SURPRISED', 'FACIAL_EXPRESSION_ANGRY', 'FACIAL_EXPRESSION_SAD',
-           'EvtErasedEnrolledFace', 'EvtFaceAppeared', 'EvtFaceDisappeared',
-           'EvtFaceIdChanged', 'EvtFaceObserved', 'EvtFaceRenamed', 'Face',
-           'erase_all_enrolled_faces', 'erase_enrolled_face_by_id',
-           'update_enrolled_face_by_id', 'Angle', 'degrees', 'radians',
-           'ImageBox',
-           'Distance', 'distance_mm', 'distance_inches', 'Matrix44',
-           'Pose', 'pose_quaternion', 'pose_z_angle',
-           'Position', 'Quaternion',
-           'Rotation', 'rotation_quaternion', 'rotation_z_angle',
-           'angle_z_to_quaternion',
-           'Speed', 'speed_mmps',
-           'Timeout', 'Vector2', 'Vector3']
 
 _clad_to_engine_anki = messageGameToEngine.Anki
 _clad_to_engine_cozmo = messageGameToEngine.Anki.Cozmo
@@ -56,9 +16,6 @@ _clad_to_game_iface = messageEngineToGame.Anki.Cozmo.ExternalInterface
 _clad_enum = _clad_to_engine_cozmo.ExecutableBehaviorType
 
 def hcscenario2(robot: cozmo.robot.Robot):
-# Move lift down and tilt the head up
-#     robot.move_lift(-3)
-#     robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
 
     print("Press CTRL-C to quit")
     face = None
@@ -83,46 +40,29 @@ def hcscenario2(robot: cozmo.robot.Robot):
         time.sleep(.1)
 
 def hcscenario1(robot: cozmo.robot.Robot):
-    # distanceFromUser = cozmo.util.Distance.distance_mm
-
     robot.move_lift(-3)
     robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
-    box = cozmo.util.ImageBox
-    width = getattr(box,"width")
-    return width
-   # #face = None
-    # height = cozmo.util.ImageBox.height
-    # #while True:
-    # #if face and face.is_visible:
-    #     print("helo")
-    #     # leftCoord = cozmo.util.ImageBox.top_left_x
-    #     # print(leftCoord)
-    #     height = cozmo.util.ImageBox.height
-    #     print(height)
-    #         # print(getattr(cozmo.util.ImageBox))
-    #     return height
-            # # width = cozmo.util.ImageBox.width
-            # # image = height * width
-            # # print(image)
-            # distanceFromUser = distance_mm(100)
-            # print(distanceFromUser.distance_mm)
-            # action = robot.go_to_object(face, distanceFromUser)
-            # action.wait_for_completed()
-            # if float(distanceFromUser.distance_mm) <= 1220:
-            #     robot.say_text("My bad, I will move back").wait_for_completed()
-            #     robot.drive_straight(distance_mm(-60), speed_mmps(100)).wait_for_completed()
-            # else:
-            #     robot.say_text("Good, I´m not too close").wait_for_completed()
-        # else:
-        #     # robot.say_text("Sorry, no face found").wait_for_completed()
-        #     try:
-        #         face = robot.world.wait_for_observed_face(timeout=30)
-        #     except asyncio.TimeoutError:
-              ##print("Didn't find a face.")
-        #         return
+    face = None
+    proxemicZone = float(1220)
+    while True:
+        if face and face.is_visible:
+            for face in robot.world.visible_faces:
+                if face.pose.position.x < proxemicZone:
+                    robot.say_text("My bad I will move back").wait_for_completed()
+                    distanceToDrive = proxemicZone - face.pose.position.x
+                    robot.drive_straight(distance_mm(-distanceToDrive),speed_mmps(50)).wait_for_completed()
+                else:
+                    robot.say_text("Good I'm not too close")
+        try:
+            robot.say_text("Sorry can't see you, 10 seconds to find you")
+            face = robot.world.wait_for_observed_face(timeout=10)
+        except asyncio.TimeoutError:
+            print("Face not found")
+            return
 
-
-# def hcscenario3(robot: cozmo.robot.Robot):
+def hcscenario3(robot: cozmo.robot.Robot):
+        val1 = hcscenario1(robot)
+        print(val1)
         # r = sr.Recognizer()
         # mic = sr.Microphone()
         # with mic as source:
