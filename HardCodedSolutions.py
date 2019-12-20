@@ -7,6 +7,7 @@ import cozmo.faces
 from cozmoclad.clad.externalInterface import messageEngineToGame as messageEngineToGame
 from cozmoclad.clad.externalInterface import messageEngineToGame as messageGameToEngine
 import speech_recognition as sr
+import threading
 
 _clad_to_engine_anki = messageGameToEngine.Anki
 _clad_to_engine_cozmo = messageGameToEngine.Anki.Cozmo
@@ -55,7 +56,7 @@ def hcscenario2(robot: cozmo.robot.Robot):
                 else:
                     robot.say_text("Good I'm not too close")
         try:
-            robot.say_text("Sorry can't see you, 10 seconds to find you")
+            robot.say_text("Sorry can't see you, 10 seconds to find you").wait_for_completed()
             face = robot.world.wait_for_observed_face(timeout=10)
         except asyncio.TimeoutError:
             print("Face not found")
@@ -63,7 +64,7 @@ def hcscenario2(robot: cozmo.robot.Robot):
 
 def hcscenario3(robot: cozmo.robot.Robot):
         r = sr.Recognizer()
-        clip = sr.AudioFile("C:/Users/Chirag/Desktop/Cozmotest.wav")
+        clip = sr.AudioFile("C:/Users/Chirag/Desktop/Dissertation/Dissertation-Code/Recording.wav")
         with clip as source:
             audio = r.record(source)
             print("data loaded")
@@ -74,4 +75,20 @@ def hcscenario3(robot: cozmo.robot.Robot):
             else:
                 robot.say_text("Good to see that you want to play, what should we do").wait_for_completed()
 
-cozmo.run_program(hcscenario3)
+# def voiceRecog():
+#     r = sr.Recognizer()
+#     clip = sr.AudioFile("C:/Users/Chirag/Desktop/Dissertation/Dissertation-Code/Recording.wav")
+#     with clip as source:
+#         audio = r.record(source)
+#         print("data loaded")
+#         result = r.recognize_google(audio)
+#         if ("stop" in result):
+#             print("KOBE")
+#         else:
+#             print("CURRY")
+#         print(result)
+
+# voiceThread = threading.Thread(target=hcscenario3,args=(1,))
+# voiceThread.start()
+
+cozmo.run_program(hcscenario1)
