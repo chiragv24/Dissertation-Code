@@ -47,22 +47,41 @@ allActs = [1,2,3,4]
 #
 # cozmo.run_program(nextAction)
 
-def robotMovement(actionNum,robot:cozmo.robot.Robot):
-    if(actionNum == 0):
-        print("HEELLO")
-        robot.drive_straight(distance_mm(-250),speed_mmps(50)).wait_for_completed()
-    elif(actionNum == 1):
-        print("HEEEEEELO2")
-        robot.drive_straight(distance_mm(250),speed_mmps(50)).wait_for_completed()
-    elif(actionNum == 2):
-        print("Hello3")
-        robot.say_text("Hello, how are you doing today?").wait_for_completed()
+# def robotMovement(actionNum,robot:cozmo.robot.Robot):
+#     if(actionNum == 0):
+#         print("HEELLO")
+#         robot.drive_straight(distance_mm(-250),speed_mmps(50)).wait_for_completed()
+#     elif(actionNum == 1):
+#         print("HEEEEEELO2")
+#         robot.drive_straight(distance_mm(250),speed_mmps(50)).wait_for_completed()
+#     elif(actionNum == 2):
+#         print("Hello3")
+#         robot.say_text("Hello, how are you doing today?").wait_for_completed()
+#
+# def nextAction(robot: cozmo.robot.Robot):
+#     nextActRand = randint(0,3)
+#     nextAct = allActs[nextActRand]
+#     indexOfNextAct = allActs.index(nextAct)
+#     robotMovement(indexOfNextAct,robot)
+#     return indexOfNextAct
+#
+# cozmo.run_program(nextAction)
 
-def nextAction(robot: cozmo.robot.Robot):
-    nextActRand = randint(0,3)
-    nextAct = allActs[nextActRand]
-    indexOfNextAct = allActs.index(nextAct)
-    robotMovement(indexOfNextAct,robot)
-    return indexOfNextAct
+def voiceComms():
+            r = sr.Recognizer()
+            clip = sr.AudioFile("C:/Users/Chirag/Desktop/Dissertation/Dissertation-Code/Recording.wav")
+            with clip as source:
+                audio = r.record(source)
+                print("data loaded")
+                result = r.recognize_google(audio)
+                if ("stop" in result):
+                    print("KOBE")
+                else:
+                    print("CURRY")
+                print(result)
 
-cozmo.run_program(nextAction)
+def listenerThread():
+    x = threading.Thread(target = voiceComms,args=())
+    x.start()
+
+listenerThread()

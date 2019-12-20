@@ -1,5 +1,4 @@
     # import speech_recognition as sr
-    #
     # r = sr.Recognizer()
     # mic = sr.Microphone()
     # with mic as source:
@@ -10,27 +9,27 @@
     #     print(speech)
 
 
-    import speech_recognition as sr
-    import noisereduce as nr
-    import wave
-    import contextlib
-    import math
-    import scipy
-    from scipy.io import wavfile
+import speech_recognition as sr
+import noisereduce as nr
+import wave
+import contextlib
+import math
+import scipy
+from scipy.io import wavfile
 
 
-    # obtain audio from the microphone
-    r = sr.Recognizer()
-    clip = sr.AudioFile("C:/Users/Chirag/Desktop/Dissertation/Dissertation-Code/Recording.wav")
-    with clip as source:
-        audio = r.record(source)
-        print("data loaded")
-        result = r.recognize_google(audio)
-        if("stop" in result)
-            print("KOBE")
-        else:
-            print("CURRY")
-        print(result)
+# obtain audio from the microphone
+r = sr.Recognizer()
+clip = sr.AudioFile("C:/Users/Chirag/Desktop/Dissertation/Dissertation-Code/Recording.wav")
+with clip as source:
+    audio = r.record(source)
+    print("data loaded")
+    result = r.recognize_google(audio)
+    if("stop" in result):
+        print("KOBE")
+    else:
+        print("CURRY")
+    print(result)
 
 
 
