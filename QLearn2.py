@@ -1,12 +1,12 @@
 import numpy as np
-from random import seed
 from random import randint
+
+
 import asyncio
 import cozmo.util
 import time
 import cozmo
-from cozmo.util import distance_mm
-from cozmo.util import speed_mmps
+from cozmo.util import distance_mm, speed_mmps
 import cozmo.faces
 from cozmoclad.clad.externalInterface import messageEngineToGame as messageEngineToGame
 from cozmoclad.clad.externalInterface import messageEngineToGame as messageGameToEngine
@@ -22,7 +22,7 @@ _clad_to_game_iface = messageEngineToGame.Anki.Cozmo.ExternalInterface
 _clad_enum = _clad_to_engine_cozmo.ExecutableBehaviorType
 
 #Reference to Cozmo throughout the whole program
-#robot = cozmo.robot.Robot
+robot = cozmo.robot.Robot
 
 #Where 1 = far dist, 2 = close dist
 states = [0,1]
@@ -42,7 +42,7 @@ def availActions(state):
 
 allActs = availActions(initState)
 
-def robotMovement(actionNum,robot: cozmo.robot.Robot):
+def robotMovement(actionNum,robot:cozmo.robot.Robot):
     if(actionNum == 0):
         print("HEELLO")
         robot.drive_straight(distance_mm(-250),speed_mmps(50)).wait_for_completed()
@@ -51,6 +51,7 @@ def robotMovement(actionNum,robot: cozmo.robot.Robot):
         robot.drive_straight(distance_mm(250),speed_mmps(50)).wait_for_completed()
     elif(actionNum == 2):
         print("Konne")
+        robot.say_text("Hello how are you doing today?").wait_for_completed()
 
 def nextAction(allActs,robot: cozmo.robot.Robot):
     nextActRand = randint(0,3)
@@ -81,26 +82,27 @@ for i in range (50):
 
 # Testing the model this time, commenting for robot interfacing
 
-def finalTest(robot:cozmo)
-sum = 0
-initState = 0
-for i in range (15):
-    print("This is the testing stage " + str(i))
-    bestVal= np.max(Q[initState][:])
-    sum+=bestVal
-    nextStep = Q[initState].index(bestVal)
-    robotMovement(nextStep,robot)
-    if(nextStep == 0):
-        nextStep = 1
-    elif(nextStep == 1):
-        nextStep = 0
-    elif(nextStep!= 1 or nextStep!=0):
-        nextStep = initState
-    initState = nextStep
+def finalTest(robot:cozmo.robot.Robot):
+    sum = 0
+    initState = 0
+    for i in range (15):
+        print("This is the testing stage " + str(i))
+        bestVal= np.max(Q[initState][:])
+        sum+=bestVal
+        nextStep = Q[initState].index(bestVal)
+        robotMovement(nextStep,robot)
+        if(nextStep == 0):
+            nextStep = 1
+        elif(nextStep == 1):
+            nextStep = 0
+        elif(nextStep!= 1 or nextStep!=0):
+            nextStep = initState
+        initState = nextStep
 
 print("THIS IS THE FINAL RESULT")
 print(Q)
 print(sum)
+robot.say_text("Hello how are you doing today mate").wait_for_completed()
 
 
 
