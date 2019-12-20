@@ -85,3 +85,9 @@ def listenerThread():
     x.start()
 
 listenerThread()
+
+def counter():
+    for i in range(10):
+        print(i + 10)
+
+counter()
