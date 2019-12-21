@@ -9,6 +9,8 @@ from cozmoclad.clad.externalInterface import messageEngineToGame as messageEngin
 from cozmoclad.clad.externalInterface import messageEngineToGame as messageGameToEngine
 import speech_recognition as sr
 import threading
+import multiprocessing
+from multiprocessing import Process
 from random import randint
 
 
@@ -80,14 +82,20 @@ def voiceComms():
                     print("CURRY")
                 print(result)
 
-def listenerThread():
-    x = threading.Thread(target = voiceComms,args=())
-    x.start()
-
-listenerThread()
+#x = threading.Thread(target = voiceComms,args=())
+x = multiprocessing.Process(target=voiceComms,args=())
+x.start()
+x.join()
 
 def counter():
     for i in range(10):
         print(i + 10)
+#
+# y = threading.Thread(target = counter,args=())
+# y.start()
 
 counter()
+
+
+# print("Total number of threads", threading.active_count())
+# print("list of threads: ",threading.enumerate())

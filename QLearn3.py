@@ -34,6 +34,7 @@ rewards = [[-1.1,-2.1,-1.5,-2],[-2.1,-0.1,0.5,0]]
 gamma = 0.8
 Q = [[0,0,0,0],[0,0,0,0]]
 initState = 0
+nextActionIndex = 0
 
 def availActions(state):
     currentStateRow = rewards[state][:]
@@ -44,45 +45,46 @@ allActs = availActions(initState)
 
 def robotMovement(actionNum,robot:cozmo.robot.Robot):
     if(actionNum == 0):
-        print("HEELLO")
+        #print("HEELLO")
         robot.drive_straight(distance_mm(-250),speed_mmps(50)).wait_for_completed()
     elif(actionNum == 1):
-        print("HEEEEEELO2")
+        #print("HEEEEEELO2")
         robot.drive_straight(distance_mm(250),speed_mmps(50)).wait_for_completed()
     elif(actionNum == 2):
-        print("Konne")
+        #print("Konne")
         robot.say_text("Hello how are you doing today?").wait_for_completed()
 
 def nextAction(robot: cozmo.robot.Robot):
-    print(allActs)
+    #print(allActs)
     nextActRand = randint(0,3)
     nextAct = allActs[nextActRand]
     indexOfNextAct = allActs.index(nextAct)
     robotMovement(indexOfNextAct,robot)
-    print(indexOfNextAct)
-    return indexOfNextAct
+    #print(indexOfNextAct)
+    nextActionIndex = indexOfNextAct
 
-print(robot)
 #nextAct = nextAction(robot)
 nextAct = cozmo.run_program(nextAction)
-print(nextAct)
+#nextAct = cozmo.connect(nextAction)
 
 #Updating Q values
 def update(currentState,action,gamma):
-    print("currentstate in the method update")
-    print(currentState)
-    print(np.max(rewards[currentState][:]))
+    #print("currentstate in the method update")
+    #print(currentState)
+    #print(np.max(rewards[currentState][:]))
     Q[currentState][action] = round(rewards[currentState][action] + gamma * np.max(rewards[currentState][:]),2)
     return currentState
 
-update(initState,nextAct,gamma)
+update(initState,nextActionIndex,gamma)
 
 #Training the model
-for i in range (50):
+for i in range (5):
+    print("THIS IS THE NUMBER OF ACTIONS COZMO HAS IS ON NOW " + str(i))
     currentStateRand = randint(0,1)
-    action = cozmo.run_program(nextAction)
+    #action = cozmo.run_program(nextAction)
+    cozmo.run_program(nextAction)
     #action = nextAction(actions,robot)
-    eval = update(currentStateRand, action, gamma)
+    eval = update(currentStateRand, nextActionIndex, gamma)
     print(Q)
 
 # Testing the model this time, commenting for robot interfacing
@@ -107,7 +109,7 @@ for i in range (50):
 print("THIS IS THE FINAL RESULT")
 print(Q)
 print(sum)
-robot.say_text("Hello how are you doing today mate").wait_for_completed()
+robot.say_text("I have now trained enough").wait_for_completed()
 
 
 
