@@ -11,6 +11,7 @@ import speech_recognition as sr
 import threading
 import multiprocessing
 from multiprocessing import Process
+from multiprocessing import Pool
 from random import randint
 
 
@@ -23,69 +24,27 @@ _clad_to_game_iface = messageEngineToGame.Anki.Cozmo.ExternalInterface
 _clad_enum = _clad_to_engine_cozmo.ExecutableBehaviorType
 
 robot = cozmo.robot.Robot
-allActs = [1,2,3,4]
 
-# def kobe(robot:cozmo.robot.Robot):
-#         robot.drive_straight(distance_mm(500),speed_mmps(50)).wait_for_completed()
-#         robot.say_text("KOBE").wait_for_completed()
-#
-# def robotMovement(actionNum,robot:cozmo.robot.Robot):
-#     if(actionNum == 0):
-#         print("HEELLO")
-#         robot.drive_straight(distance_mm(-250),speed_mmps(50)).wait_for_completed()
-#     elif(actionNum == 1):
-#         print("HEEEEEELO2")
-#         robot.drive_straight(distance_mm(250),speed_mmps(50)).wait_for_completed()
-#     elif(actionNum == 2):
-#         print("Hello3")
-#         robot.say_text("Hello, how are you doing today?").wait_for_completed()
-#
-# def nextAction(robot: cozmo.robot.Robot):
-#     nextActRand = randint(0,3)
-#     nextAct = allActs[nextActRand]
-#     indexOfNextAct = allActs.index(nextAct)
-#     robotMovement(indexOfNextAct,robot)
-#     return indexOfNextAct
-#
-# cozmo.run_program(nextAction)
+def moveRobot(robot:cozmo.robot.Robot):
+    robot.drive_straight(distance_mm(-300), speed_mmps(100)).wait_for_completed()
 
-# def robotMovement(actionNum,robot:cozmo.robot.Robot):
-#     if(actionNum == 0):
-#         print("HEELLO")
-#         robot.drive_straight(distance_mm(-250),speed_mmps(50)).wait_for_completed()
-#     elif(actionNum == 1):
-#         print("HEEEEEELO2")
-#         robot.drive_straight(distance_mm(250),speed_mmps(50)).wait_for_completed()
-#     elif(actionNum == 2):
-#         print("Hello3")
-#         robot.say_text("Hello, how are you doing today?").wait_for_completed()
-#
-# def nextAction(robot: cozmo.robot.Robot):
-#     nextActRand = randint(0,3)
-#     nextAct = allActs[nextActRand]
-#     indexOfNextAct = allActs.index(nextAct)
-#     robotMovement(indexOfNextAct,robot)
-#     return indexOfNextAct
-#
-# cozmo.run_program(nextAction)
+def sayText(robot:cozmo.robot.Robot):
+    robot.say_text("Good to see that you want to play, what should we do").wait_for_completed()
 
 def voiceComms():
-            r = sr.Recognizer()
-            clip = sr.AudioFile("C:/Users/Chirag/Desktop/Dissertation/Dissertation-Code/Recording.wav")
-            with clip as source:
-                audio = r.record(source)
-                print("data loaded")
-                result = r.recognize_google(audio)
-                if ("stop" in result):
-                    print("KOBE")
-                else:
-                    print("CURRY")
-                print(result)
-
+    while True:
+        r = sr.Recognizer()
+        clip = sr.AudioFile("C:/Users/Chirag/Desktop/Dissertation/Dissertation-Code/Recording.wav")
+        with clip as source:
+            audio = r.record(source)
+            print("data loaded")
+            result = r.recognize_google(audio)
+            print(result)
+            if ("stop" in result and "Cosmo" in result):
+                cozmo.run_program(moveRobot)
+            else:
+                cozmo.run_program(sayText)
 #x = threading.Thread(target = voiceComms,args=())
-x = multiprocessing.Process(target=voiceComms,args=())
-x.start()
-x.join()
 
 def counter():
     for i in range(10):
@@ -94,7 +53,13 @@ def counter():
 # y = threading.Thread(target = counter,args=())
 # y.start()
 
-counter()
+if __name__=='__main__':
+    x = Process(target=voiceComms)
+    x.start()
+    y = Process(target=counter)
+    y.start()
+    x.join()
+    y.join()
 
 
 # print("Total number of threads", threading.active_count())

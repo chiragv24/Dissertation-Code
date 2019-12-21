@@ -24,7 +24,7 @@ _clad_enum = _clad_to_engine_cozmo.ExecutableBehaviorType
 #Reference to Cozmo throughout the whole program
 robot = cozmo.robot.Robot
 
-#Where 1 = far dist, 2 = close dist
+#Where 0 = far dist, 2 = close dist
 states = [0,1]
 #Where 1 = forward, 2 = backward, 3 = greet, 4 = idle
 actions = [0,1,2,3]
@@ -45,48 +45,44 @@ allActs = availActions(initState)
 
 def robotMovement(actionNum,robot:cozmo.robot.Robot):
     if(actionNum == 0):
-        #print("HEELLO")
         robot.drive_straight(distance_mm(-250),speed_mmps(50)).wait_for_completed()
     elif(actionNum == 1):
-        #print("HEEEEEELO2")
         robot.drive_straight(distance_mm(250),speed_mmps(50)).wait_for_completed()
     elif(actionNum == 2):
-        #print("Konne")
         robot.say_text("Hello how are you doing today?").wait_for_completed()
 
 def nextAction(robot: cozmo.robot.Robot):
-    #print(allActs)
+    #CHANGE THIS BACK TO 3
     nextActRand = randint(0,3)
     nextAct = allActs[nextActRand]
     indexOfNextAct = allActs.index(nextAct)
     robotMovement(indexOfNextAct,robot)
-    #print(indexOfNextAct)
+    global nextActionIndex
     nextActionIndex = indexOfNextAct
-
-#nextAct = nextAction(robot)
-nextAct = cozmo.run_program(nextAction)
-#nextAct = cozmo.connect(nextAction)
 
 #Updating Q values
 def update(currentState,action,gamma):
-    #print("currentstate in the method update")
-    #print(currentState)
-    #print(np.max(rewards[currentState][:]))
     Q[currentState][action] = round(rewards[currentState][action] + gamma * np.max(rewards[currentState][:]),2)
-    return currentState
 
-update(initState,nextActionIndex,gamma)
+#update(initState,nextActionIndex,gamma)
 
+def trainCozmo():
 #Training the model
-for i in range (5):
-    print("THIS IS THE NUMBER OF ACTIONS COZMO HAS IS ON NOW " + str(i))
-    currentStateRand = randint(0,1)
-    #action = cozmo.run_program(nextAction)
-    cozmo.run_program(nextAction)
-    #action = nextAction(actions,robot)
-    eval = update(currentStateRand, nextActionIndex, gamma)
-    print(Q)
+    for i in range (10):
+        ##FINDS THE DISTANCE WITH THE HUMAN USING POSE
+        currentStateRand = randint(0,1)
+        cozmo.run_program(nextAction)
+        update(currentStateRand, nextActionIndex, gamma)
 
+trainCozmo()
+
+if __name__=='__main__':
+    cozmoThread = Process(target=trainCozmo)
+    cozmoThread.start()
+    listenerThread = Process(target=hcscenario3,args=(robot))
+    listenerThread.start()
+    cozmoThread.join()
+    listenerThread.join()
 # Testing the model this time, commenting for robot interfacing
 
 # def finalTest(robot:cozmo.robot.Robot):
@@ -108,8 +104,6 @@ for i in range (5):
 
 print("THIS IS THE FINAL RESULT")
 print(Q)
-print(sum)
-robot.say_text("I have now trained enough").wait_for_completed()
 
 
 
