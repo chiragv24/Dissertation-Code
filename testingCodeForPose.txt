@@ -64,6 +64,35 @@ def nextAction(robot: cozmo.robot.Robot):
 def update(currentState,action,gamma):
     Q[currentState][action] = round(rewards[currentState][action] + gamma * np.max(rewards[currentState][:]),2)
 
+def findCurrentState(robot: cozmo.robot.Robot):
+    cozmo.run_program(moveRobotHead)
+    face = searchForFace(robot)
+    return face
+
+def searchForFace(robot: cozmo.robot.Robot):
+    face = None
+    while True:
+        if face and face.is_visible:
+            for face in robot.world.visible_faces:
+                if face.pose.position.x < float(500):
+                    currentState = 1
+                else:
+                    currentState = 0
+                return currentState
+        try:
+            face = robot.world.wait_for_observed_face(timeout=10)
+        except asyncio.TimeoutError:
+            print("Face not found")
+            return
+    # face = None
+    # try:
+    #     face = robot.world.wait_for_observed_face(timeout=10)
+    # except asyncio.TimeoutError:
+    #     robot.say_text("Sorry face not found")
+    # if face and face.is_visible:
+    #      for face in robot.world.visible_faces:
+    #          return face
+
 def moveRobotHead(robot:cozmo.robot.Robot):
     robot.move_lift(-3)
     robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
@@ -72,9 +101,10 @@ def trainCozmo():
 #Training the model
     for i in range (10):
         ##FINDS THE DISTANCE WITH THE HUMAN USING POSE
-        currentStateRand = randint(0,1)
+        currentState = findCurrentState(robot)
+        #currentStateRand = randint(0,1)
         cozmo.run_program(nextAction)
-        update(currentStateRand, nextActionIndex, gamma)
+        update(currentState, nextActionIndex, gamma)
 
 trainCozmo()
 #
