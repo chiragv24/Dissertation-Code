@@ -41,9 +41,9 @@ def sayText(robot:cozmo.robot.Robot):
 #                     #CHECK THE STATE AND MOVE TO THE OPPOSITE ONE
 
 
-def voiceComms(robot:cozmo.robot.Robot):
+#YOU WILL NEED A ROBOT FOR THIS ONE WHEN INTEGRATING INTO THE QLEARN ALGO
+def voiceComms():
     while True:
-        print("This is the number of times run " + str(counter))
         r = sr.Recognizer()
         clip = sr.AudioFile("C:/Users/Chirag/Desktop/Dissertation/Dissertation-Code/Recording.wav")
         with clip as source:
@@ -51,38 +51,56 @@ def voiceComms(robot:cozmo.robot.Robot):
             print("data loaded")
             result = r.recognize_google(audio)
             print(result)
-            if "Cosmo" in result:
-                currentState = findCurrentState()
-                if "stop" in result:
-                    if(currentState == 1):
-                        robot.drive_straight(distance_mm(-1000),speed_mmps(50)).wait_for_completed()
-                        y.terminate()
-                    elif(currentState == 0):
-                        y.terminate()
-                elif "move" in result:
-                    #USE ROBOTMOVEMENT FROM QLEARNING FOR THIS AND THE ONE ABOVE TOO
-                    #THINK ABOUT USING THE POSE DISTANCE FROM THE FACE FOR THIS METHOD
-                    if(currentState == 1):
-                        y.sleep(7)
-                        robot.drive_straight(distance_mm(-1000),speed_mmps(50)).wait_for_completed()
-                    elif(currentState == 0):
-                        y.sleep(7)
-                        robot.drive_straight(distance_mm(500),speed_mmps(50)).wait_for_completed()
-            if "stop" in result and "Cosmo" in result:
-                print("Not in results")
-                #cozmo.run_program(moveRobot)
-            else:
-                print("In result")
-                #cozmo.run_program(sayText)
+            return result
+            # if "Cosmo" in result:
+            #     currentState = findCurrentState()
+            #     if "stop" in result:
+            #         if(currentState == 1):
+            #             robot.drive_straight(distance_mm(-1000),speed_mmps(50)).wait_for_completed()
+            #             y.terminate()
+            #         elif(currentState == 0):
+            #             y.terminate()
+            #     elif "move" in result:
+            #         #USE ROBOTMOVEMENT FROM QLEARNING FOR THIS AND THE ONE ABOVE TOO
+            #         #THINK ABOUT USING THE POSE DISTANCE FROM THE FACE FOR THIS METHOD
+            #         if(currentState == 1):
+            #             y.sleep(7)
+            #             robot.drive_straight(distance_mm(-1000),speed_mmps(50)).wait_for_completed()
+            #         elif(currentState == 0):
+            #             y.sleep(7)
+            #             robot.drive_straight(distance_mm(500),speed_mmps(50)).wait_for_completed()
+            # if "Cosmo" in result:
+            #     if "stop" in result:
+            #         print("Kobe")
+            #         y.terminate()
+            #     elif "well" in result:
+            #         print("LBJ")
+            #         y.sleep(7)
+            #         print("KobeWins")
+            #     #cozmo.run_program(moveRobot)
+            # else:
+            #     print("Neither options have been said by the user")
+            #     #cozmo.run_program(sayText)
 
 def counter():
-    for i in range(100):
-        print(i * i)
+    for i in range(1000):
+        print(i)
 
 if __name__=='__main__':
+    counter = 0
     x = Process(target=voiceComms)
     x.start()
     y = Process(target=counter)
     y.start()
+    if counter > 0:
+        if "Cosmo" in x:
+            if "stop" in x:
+                y.terminate()
+            elif "well" in x:
+                y.sleep(5)
+        else:
+            print("DUMBAAS")
     x.join()
     y.join()
+    counter = counter+1
+    print(counter)
