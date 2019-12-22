@@ -1,3 +1,5 @@
+code for threads and the HW interaction and state check
+
 import cozmo.util
 import cozmo
 from cozmo.util import distance_mm

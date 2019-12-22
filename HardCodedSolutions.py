@@ -91,4 +91,4 @@ def hcscenario3(robot: cozmo.robot.Robot):
 # voiceThread = threading.Thread(target=hcscenario3,args=(1,))
 # voiceThread.start()
 
-cozmo.run_program(hcscenario1)
+cozmo.run_program(hcscenario2)

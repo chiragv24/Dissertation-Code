@@ -78,7 +78,7 @@ def searchForFace(robot: cozmo.robot.Robot):
     print(cozmo.robot.world.World)
     while True:
         if face and face.is_visible:
-            for face in cozmo.robot.world.World.visible_faces
+            for face in cozmo.robot.world.World.visible_faces:
                 if face.pose.position.x < float(500):
                     currentState = 1
                 else:
