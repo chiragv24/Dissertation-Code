@@ -71,20 +71,27 @@ def findCurrentState(robot: cozmo.robot.Robot):
 
 def searchForFace(robot: cozmo.robot.Robot):
     face = None
+    print(cozmo.robot)
+    print(robot)
+    print(robot.world_factory)
+    print(cozmo.robot.world)
+    print(cozmo.robot.world.World)
     while True:
         if face and face.is_visible:
-            for face in robot.world.visible_faces:
+            for face in cozmo.robot.world.World.visible_faces
                 if face.pose.position.x < float(500):
                     currentState = 1
                 else:
                     currentState = 0
                 return currentState
         try:
-            face = robot.world.wait_for_observed_face(timeout=10)
+            face = cozmo.robot.world.World.wait_for_observed_face(robot,timeout=10)
+            #face = robot.world.wait_for_observed_face(timeout=10)
         except asyncio.TimeoutError:
             print("Face not found")
             return
-    # face = None
+
+    # face  None
     # try:
     #     face = robot.world.wait_for_observed_face(timeout=10)
     # except asyncio.TimeoutError:
