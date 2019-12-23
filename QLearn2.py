@@ -44,11 +44,15 @@ allActs = availActions(initState)
 
 def robotMovement(actionNum,robot:cozmo.robot.Robot):
     if(actionNum == 0):
+        robot.say_text("I´m moving back now")
         robot.drive_straight(distance_mm(-250),speed_mmps(50)).wait_for_completed()
     elif(actionNum == 1):
+        robot.say_text("I'm moving forward now")
         robot.drive_straight(distance_mm(250),speed_mmps(50)).wait_for_completed()
     elif(actionNum == 2):
         robot.say_text("Hello how are you doing today?").wait_for_completed()
+    else:
+        robot.say_text("I'm not moving this time").wait_for_completed()
 
 def nextAction(robot: cozmo.robot.Robot):
     nextActRand = randint(0,3)
@@ -72,8 +76,8 @@ def searchForFace(robot: cozmo.robot.Robot):
     while True:
         if face and face.is_visible:
             for face in robot.world.visible_faces:
-                print("THIS IS THE DISTANCE " + str(face.pose.position.z))
-                if face.pose.position.z < float(500):
+                print("THIS IS THE DISTANCE " + str(face.pose.position.x))
+                if face.pose.position.x < float(200):
                     robot.say_text("I'm currently in the close state").wait_for_completed()
                     currentState = 1
                 else:
@@ -103,6 +107,10 @@ def trainCozmo(robot:cozmo.robot.Robot):
         update(currentState, nextActionIndex, gamma)
 
 cozmo.run_program(trainCozmo,use_viewer=True)
+
+
+
+
 #
 # if __name__=='__main__':
 #     cozmoThread = Process(target=trainCozmo)

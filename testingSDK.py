@@ -19,8 +19,6 @@ _clad_to_game_cozmo = messageEngineToGame.Anki.Cozmo
 _clad_to_game_iface = messageEngineToGame.Anki.Cozmo.ExternalInterface
 _clad_enum = _clad_to_engine_cozmo.ExecutableBehaviorType
 
-robot = cozmo.robot.Robot
-
 def moveRobot(robot:cozmo.robot.Robot):
     robot.drive_straight(distance_mm(-300), speed_mmps(100)).wait_for_completed()
 
@@ -42,7 +40,7 @@ def sayText(robot:cozmo.robot.Robot):
 
 
 #YOU WILL NEED A ROBOT FOR THIS ONE WHEN INTEGRATING INTO THE QLEARN ALGO
-def voiceComms():
+def voiceComms(robot:cozmo.robot.Robot):
     while True:
         r = sr.Recognizer()
         clip = sr.AudioFile("C:/Users/Chirag/Desktop/Dissertation/Dissertation-Code/Recording.wav")
@@ -51,8 +49,9 @@ def voiceComms():
             print("data loaded")
             result = r.recognize_google(audio)
             print(result)
+            robot.say_text("This is what you said right? " + result).wait_for_completed()
             return result
-            # if "Cosmo" in result:
+            #if "Cosmo" in result:
             #     currentState = findCurrentState()
             #     if "stop" in result:
             #         if(currentState == 1):
@@ -87,20 +86,26 @@ def counter():
         print(i)
 
 if __name__=='__main__':
-    counter = 0
-    x = Process(target=voiceComms)
+    x = Process(target=cozmo.run_program(voiceComms))
     x.start()
     y = Process(target=counter)
     y.start()
-    if counter > 0:
-        if "Cosmo" in x:
-            if "stop" in x:
-                y.terminate()
-            elif "well" in x:
-                y.sleep(5)
-        else:
-            print("DUMBAAS")
-    x.join()
-    y.join()
-    counter = counter+1
-    print(counter)
+
+# if __name__=='__main__':
+#     counter = 0
+#     x = Process(target=voiceComms)
+#     x.start()
+#     y = Process(target=counter)
+#     y.start()
+#     if counter > 0:
+#         if "Cosmo" in x:
+#             if "stop" in x:
+#                 y.terminate()
+#             elif "well" in x:
+#                 y.sleep(5)
+#         else:
+#             print("DUMBAAS")
+#     x.join()
+#     y.join()
+#     counter = counter+1
+#     print(counter)

@@ -42,18 +42,22 @@ def hcscenario1(robot: cozmo.robot.Robot):
         time.sleep(.1)
 
 def hcscenario2(robot: cozmo.robot.Robot):
-    print(robot.robot_id)
-    robot.move_lift(-3)
-    robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
+    counter = 0
     face = None
     proxemicZone = float(700)
     while True:
+        robot.move_lift(-3)
+        robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
+        counter = counter+1
         if face and face.is_visible:
+            print("Dist x " + str(face.pose.position.x) + " " + str(counter))
+            print("Dist y " + str(face.pose.position.y)+  " " + str(counter))
+            print("Dist z " + str(face.pose.position.z)+ " " + str(counter))
             for face in robot.world.visible_faces:
                 if face.pose.position.x < proxemicZone:
                     robot.say_text("My bad I will move back").wait_for_completed()
-                    distanceToDrive = proxemicZone - face.pose.position.x
-                    robot.drive_straight(distance_mm(-distanceToDrive),speed_mmps(50)).wait_for_completed()
+                    ##distanceToDrive = proxemicZone - face.pose.position.x
+                    ##robot.drive_straight(distance_mm(-distanceToDrive),speed_mmps(50)).wait_for_completed()
                 else:
                     robot.say_text("Good I'm not too close").wait_for_completed()
         try:
@@ -76,6 +80,7 @@ def hcscenario3(robot: cozmo.robot.Robot):
             else:
                 robot.say_text("Good to see that you want to play, what should we do").wait_for_completed()
 
+
 # def voiceRecog():
 #     r = sr.Recognizer()
 #     clip = sr.AudioFile("C:/Users/Chirag/Desktop/Dissertation/Dissertation-Code/Recording.wav")
@@ -92,4 +97,4 @@ def hcscenario3(robot: cozmo.robot.Robot):
 # voiceThread = threading.Thread(target=hcscenario3,args=(1,))
 # voiceThread.start()
 
-cozmo.run_program(hcscenario2)
+cozmo.run_program(hcscenario2,use_viewer=True)
