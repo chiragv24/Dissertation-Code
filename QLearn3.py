@@ -23,7 +23,6 @@ _clad_to_game_iface = messageEngineToGame.Anki.Cozmo.ExternalInterface
 _clad_enum = _clad_to_engine_cozmo.ExecutableBehaviorType
 
 #Reference to Cozmo throughout the whole program
-robot = cozmo.robot.Robot
 
 #Where 0 = far dist, 1 = close dist
 states = [0,1]

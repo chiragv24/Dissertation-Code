@@ -23,8 +23,6 @@ _clad_to_game_iface = messageEngineToGame.Anki.Cozmo.ExternalInterface
 _clad_enum = _clad_to_engine_cozmo.ExecutableBehaviorType
 
 #Reference to Cozmo throughout the whole program
-robot = cozmo.robot.Robot
-
 #Where 0 = far dist, 1 = close dist
 states = [0,1]
 #Where 1 = forward, 2 = backward, 3 = greet, 4 = idle
@@ -65,55 +63,46 @@ def update(currentState,action,gamma):
     Q[currentState][action] = round(rewards[currentState][action] + gamma * np.max(rewards[currentState][:]),2)
 
 def findCurrentState(robot: cozmo.robot.Robot):
-    cozmo.run_program(moveRobotHead)
+    moveRobotHead(robot)
     face = searchForFace(robot)
     return face
 
 def searchForFace(robot: cozmo.robot.Robot):
     face = None
-    print(cozmo.robot)
-    print(robot)
-    print(robot.world_factory)
-    print(cozmo.robot.world)
-    print(cozmo.robot.world.World)
     while True:
         if face and face.is_visible:
-            for face in cozmo.robot.world.World.visible_faces:
-                if face.pose.position.x < float(500):
+            for face in robot.world.visible_faces:
+                print("THIS IS THE DISTANCE " + str(face.pose.position.z))
+                if face.pose.position.z < float(500):
+                    robot.say_text("I'm currently in the close state").wait_for_completed()
                     currentState = 1
                 else:
+                    robot.say_text("I'm currently in the far state").wait_for_completed()
                     currentState = 0
                 return currentState
         try:
-            face = cozmo.robot.world.World.wait_for_observed_face(robot,timeout=10)
-            #face = robot.world.wait_for_observed_face(timeout=10)
+            robot.say_text("Sorry, I couldn´t find your face, 10 seconds to do it").wait_for_completed()
+            face = robot.world.wait_for_observed_face(timeout=10)
         except asyncio.TimeoutError:
+            robot.say_text("Sorry, it will have to be next time").wait_for_completed()
             print("Face not found")
             return
-
-    # face  None
-    # try:
-    #     face = robot.world.wait_for_observed_face(timeout=10)
-    # except asyncio.TimeoutError:
-    #     robot.say_text("Sorry face not found")
-    # if face and face.is_visible:
-    #      for face in robot.world.visible_faces:
-    #          return face
 
 def moveRobotHead(robot:cozmo.robot.Robot):
     robot.move_lift(-3)
     robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
 
-def trainCozmo():
+def trainCozmo(robot:cozmo.robot.Robot):
 #Training the model
     for i in range (10):
         ##FINDS THE DISTANCE WITH THE HUMAN USING POSE
         currentState = findCurrentState(robot)
+        print(currentState)
         #currentStateRand = randint(0,1)
-        cozmo.run_program(nextAction)
+        nextAction(robot)
         update(currentState, nextActionIndex, gamma)
 
-trainCozmo()
+cozmo.run_program(trainCozmo,use_viewer=True)
 #
 # if __name__=='__main__':
 #     cozmoThread = Process(target=trainCozmo)

@@ -42,10 +42,11 @@ def hcscenario1(robot: cozmo.robot.Robot):
         time.sleep(.1)
 
 def hcscenario2(robot: cozmo.robot.Robot):
+    print(robot.robot_id)
     robot.move_lift(-3)
     robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
     face = None
-    proxemicZone = float(1220)
+    proxemicZone = float(700)
     while True:
         if face and face.is_visible:
             for face in robot.world.visible_faces:
@@ -54,7 +55,7 @@ def hcscenario2(robot: cozmo.robot.Robot):
                     distanceToDrive = proxemicZone - face.pose.position.x
                     robot.drive_straight(distance_mm(-distanceToDrive),speed_mmps(50)).wait_for_completed()
                 else:
-                    robot.say_text("Good I'm not too close")
+                    robot.say_text("Good I'm not too close").wait_for_completed()
         try:
             robot.say_text("Sorry can't see you, 10 seconds to find you").wait_for_completed()
             face = robot.world.wait_for_observed_face(timeout=10)
