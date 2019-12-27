@@ -27,6 +27,9 @@ def hcscenario1(robot: cozmo.robot.Robot):
         if face and face.is_visible:
             robot.say_text("Hello, how are you?").wait_for_completed()
             robot.enable_facial_expression_estimation(True)
+            print(face.expression)
+            facialExp = _clad_to_game_anki.Vision.FacialExpression
+            print(facialExp)
             if not _clad_to_game_anki.Vision.FacialExpression == _clad_to_game_anki.Vision.FacialExpression.Happiness:
                 robot.say_text("Please cheer up, it would make me so happy, please play with me").wait_for_completed()
                 robot.play_anim_trigger(cozmo.anim.Triggers.MajorWin).wait_for_completed()
@@ -34,7 +37,7 @@ def hcscenario1(robot: cozmo.robot.Robot):
                 robot.say_text("Good to see that you are happy today").wait_for_completed()
         else:
             try:
-                face = robot.world.wait_for_observed_face(timeout=30)
+                face = robot.world.wait_for_observed_face(timeout=10)
             except asyncio.TimeoutError:
                 print("Didn't find a face.")
                 return
@@ -97,4 +100,4 @@ def hcscenario3(robot: cozmo.robot.Robot):
 # voiceThread = threading.Thread(target=hcscenario3,args=(1,))
 # voiceThread.start()
 
-cozmo.run_program(hcscenario2,use_viewer=True)
+cozmo.run_program(hcscenario1,use_viewer=True)

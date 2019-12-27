@@ -17,7 +17,7 @@ class ThreadingExample(object):
 
         thread = threading.Thread(target=self.run, args=())
         thread.daemon = True                            # Daemonize thread
-        thread.start()                                  # Start the execution
+        thread.start()                                 # Start the execution
 
     def run(self):
         """ Method that runs forever """

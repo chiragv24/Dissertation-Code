@@ -46,11 +46,15 @@ allActs = availActions(initState)
 
 def robotMovement(actionNum,robot:cozmo.robot.Robot):
     if(actionNum == 0):
+        robot.say_text("I´m moving back now").wait_for_completed()
         robot.drive_straight(distance_mm(-250),speed_mmps(50)).wait_for_completed()
     elif(actionNum == 1):
+        robot.say_text("I'm moving forward now").wait_for_completed()
         robot.drive_straight(distance_mm(250),speed_mmps(50)).wait_for_completed()
     elif(actionNum == 2):
         robot.say_text("Hello how are you doing today?").wait_for_completed()
+    else:
+        robot.say_text("I'm not moving this time").wait_for_completed()
 
 def nextAction(robot: cozmo.robot.Robot):
     nextActRand = randint(0,3)
@@ -99,39 +103,41 @@ def trainCozmo(robot:cozmo.robot.Robot):
     for i in range (10):
         ##FINDS THE DISTANCE WITH THE HUMAN USING POSE
         currentState = findCurrentState(robot)
-        print(currentState)
-        #currentStateRand = randint(0,1)
         nextAction(robot)
         update(currentState, nextActionIndex, gamma)
 
 class ListenerThread(object):
-    def __init__(self):
-        listThread = threading.Thread(target=self.run,args=())
+    def __init__(self,robot:cozmo.robot.Robot):
+        self.robot = robot
+        listThread = threading.Thread(target=self.run, args=(self.robot,))
         listThread.daemon = True
         listThread.start()
 
     def run(self,robot:cozmo.robot.Robot):
         while True:
-            r = sr.Recognizer()
-            clip = sr.AudioFile("C:/Users/Chirag/Desktop/Dissertation/Dissertation-Code/Recording.wav")
-            with clip as source:
-                audio = r.record(source)
-                print("data loaded")
-                result = r.recognize_google(audio)
-                print(result)
-                robot.say_text("This is what you said right? " + result).wait_for_completed()
-                if "Cosmo" in result:
-                    currentState = findCurrentState(robot)
-                    if "stop" in result:
-                        if(currentState==1):
-                            robot.drive_straight(distance_mm(-1000), speed_mmps(50)).wait_for_completed()
-                    elif "move" in result:
-                        if(currentState==1):
-                            robot.drive_straight(distance_mm(-1000), speed_mmps(50)).wait_for_completed()
-                        elif(currentState==0):
-                            robot.drive_straight(distance_mm(500), speed_mmps(50)).wait_for_completed()
-                else:
-                    robot.say_text("Sorry, command not recognised")
+            print(str(self.robot.are_wheels_moving))
+            robot.say_text("Hello how are you today")
+            # r = sr.Recognizer()
+            # clip = sr.AudioFile("C:/Users/Chirag/Desktop/Dissertation/Dissertation-Code/Recording.wav")
+            # with clip as source:
+            #     audio = r.record(source)
+            #     print("data loaded")
+            #     result = r.recognize_google(audio)
+            #     print(result)
+            #     print(self.robot)
+            #     self.robot.say_text("Hello THIS is the method for threads").wait_for_completed()
+                # if "Cosmo" in result:
+                #     currentState = findCurrentState(robot)
+                #     if "stop" in result:
+                #         if(currentState==1):
+                #             robot.drive_straight(distance_mm(-1000), speed_mmps(50)).wait_for_completed()
+                #     elif "move" in result:
+                #         if(currentState==1):
+                #             robot.drive_straight(distance_mm(-1000), speed_mmps(50)).wait_for_completed()
+                #         elif(currentState==0):
+                #             robot.drive_straight(distance_mm(500), speed_mmps(50)).wait_for_completed()
+                # else:
+                #     robot.say_text("Sorry, command not recognised")
 
 # def voiceComms(robot:cozmo.robot.Robot):
 #     while True:
@@ -163,9 +169,9 @@ class ListenerThread(object):
 #             else:
 #                 robot.say_text("Sorry your command was unrecognized").wait_for_completed()
 
-listenerThread = ListenerThread()
+listenerThread = cozmo.run_program(ListenerThread)
+time.sleep(10)
 cozmo.run_program(trainCozmo,use_viewer=True)
-time.sleep(2)
 
 
 # if __name__=='__main__':
@@ -178,37 +184,6 @@ time.sleep(2)
 
 print("THIS IS THE FINAL RESULT")
 print(Q)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # def update(state,action):
 #     print("Before")
