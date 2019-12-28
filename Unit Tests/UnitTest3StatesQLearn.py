@@ -1,6 +1,6 @@
 import unittest
-#import QLearn3States
-from testingUTAvail import availActions
+import QLearn3States
+from QLearn3States import availActions
 
 
 #Unit test class

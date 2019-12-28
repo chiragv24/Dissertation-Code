@@ -29,7 +29,7 @@ gamma = 0.8
 Q = [[0,0,0,0],[0,0,0,0]]
 initState = 0
 nextActionIndex = 0
-initCount = 0
+
 
 def availActions(state):
     currentStateRow = rewards[state][:]
@@ -48,7 +48,6 @@ def findCurrentState(robot: cozmo.robot.Robot):
 def robotMovement(actionNum,robot:cozmo.robot.Robot):
     counter = 0
     if(actionNum == 0):
-        #if robot.lift_ratio > 0.1:
         robot.move_lift(3.0)
         time.sleep(0.5)
         robot.move_lift(-3.0)

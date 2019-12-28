@@ -39,6 +39,7 @@ initCount = 0
 greetedState = False
 
 def availActions(state):
+    assert state >= 0 and state < len(rewards),"Sorry the state is not valid"
     currentStateRow = rewards[state][:]
     return currentStateRow
 
@@ -140,7 +141,7 @@ def moveRobotHead(robot:cozmo.robot.Robot):
 
 def trainCozmo(robot:cozmo.robot.Robot):
 #Training the model
-    for i in range (5):
+    for i in range (2):
         ##FINDS THE DISTANCE WITH THE HUMAN USING POSE
         currentState = findCurrentState(robot)
         nextAction(currentState,robot)

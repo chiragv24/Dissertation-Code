@@ -1,0 +1,8 @@
+rotation angle z
+each time pose delocalised it restarts 
+
+
+react to robot on face 
+anim_reacttocliff_faceplantroll_02
+
+animTrigger.name = reactorobotonface

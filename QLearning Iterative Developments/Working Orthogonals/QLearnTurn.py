@@ -1,8 +1,6 @@
 import numpy as np
 from random import randint
-import asyncio
 import cozmo.util
-from cozmo import world
 import time
 from cozmo.util import Pose
 import cozmo
@@ -30,15 +28,25 @@ Q = [[0,0],[0,0]]
 initState = 0
 nextActionIndex = 0
 
-# def robotMoves(robot:cozmo.robot.Robot):
-#     while True:
-#         robot.enable_all_reaction_triggers(True)
-#         if robot.is_picked_up and cozmo.robot._UnexpectedMovementType("TurnedInOppositeDirection",2):
-#             print("Kobe")
-#         i = robot.is_animating
-#         print("is it running " + str(i))
-#         print(robot.pose.rotation.angle_z)
-#         time.sleep(5)
+def robotMoves(robot:cozmo.robot.Robot):
+    while True:
+        robot.enable_all_reaction_triggers(True)
+        # var = cozmo.behavior._BehaviorType.name
+        print(str(robot.is_behavior_running))
+        print(str(robot.current_behavior))
+        #HOPEFULLY THIS SHIT WORKS WITH THE LIFTING OF THE ROBOT
+        #robot.start_behavior(_clad_enum.ReactToRobotOnFace)
+        # z = cozmo.anim.trigger
+        # m = cozmo.anim.Triggers
+        # u = robot.anim_triggers
+        # if robot.is_picked_up and cozmo.robot._UnexpectedMovementType("TurnedInOppositeDirection",2):
+        #     print("Kobe")
+        # i = robot.is_animating
+        # print(robot.pose.rotation.angle_z)
+        # print("is it running " + str(i))
+        # time.sleep(5)
+
+#cozmo.run_program(robotMoves)
 
 
 def availActions(state):
@@ -53,9 +61,11 @@ def findCurrentState(robot: cozmo.robot.Robot):
     m = robot.anim_triggers
     x = robot.is_animating
     y = robot.anim_names
-    if robot.is_picked_up and cozmo.robot._UnexpectedMovementType("TurnedInOppositeDirection",2):
+    u = robot.is_device_gyro_supported
+    if robot.is_picked_up and (cozmo.util.Rotation.euler_angles[1] > 90 and cozmo.util.Rotation.euler_angles[1] < 270):
         currentState = 1
-    #if robot.pose.rotation.angle_z.degrees > 90 and robot.pose.rotation.angle_z.degrees < 270:
+    #if robot.is_picked_up and cozmo.robot.anim.trigger.id == 229:
+    #     #if robot.pose.rotation.angle_z.degrees > 90 and robot.pose.rotation.angle_z.degrees < 270:
     else:
         currentState = 0
     return currentState
