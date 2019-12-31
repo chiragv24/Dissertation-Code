@@ -30,24 +30,13 @@ nextActionIndex = 0
 
 def robotMoves(robot:cozmo.robot.Robot):
     while True:
-        robot.enable_all_reaction_triggers(True)
-        # var = cozmo.behavior._BehaviorType.name
-        print(str(robot.is_behavior_running))
-        print(str(robot.current_behavior))
-        #HOPEFULLY THIS SHIT WORKS WITH THE LIFTING OF THE ROBOT
-        #robot.start_behavior(_clad_enum.ReactToRobotOnFace)
-        # z = cozmo.anim.trigger
-        # m = cozmo.anim.Triggers
-        # u = robot.anim_triggers
-        # if robot.is_picked_up and cozmo.robot._UnexpectedMovementType("TurnedInOppositeDirection",2):
-        #     print("Kobe")
-        # i = robot.is_animating
-        # print(robot.pose.rotation.angle_z)
-        # print("is it running " + str(i))
-        # time.sleep(5)
+        m = robot.pose_pitch.degrees
+        u = robot.pose_angle.degrees
+        print("ROTATION AROUND " + str(u))
+        print("UP AND DOWN " + str(m))
+        time.sleep(10)
 
 #cozmo.run_program(robotMoves)
-
 
 def availActions(state):
     currentStateRow = rewards[state][:]
@@ -58,14 +47,10 @@ allActs = availActions(initState)
 #
 def findCurrentState(robot: cozmo.robot.Robot):
     robot.enable_all_reaction_triggers(True)
-    m = robot.anim_triggers
-    x = robot.is_animating
-    y = robot.anim_names
-    u = robot.is_device_gyro_supported
-    if robot.is_picked_up and (cozmo.util.Rotation.euler_angles[1] > 90 and cozmo.util.Rotation.euler_angles[1] < 270):
+    angle = str(robot.pose_pitch.degrees)
+
+    if robot.is_picked_up and 90 < float(angle) < 180:
         currentState = 1
-    #if robot.is_picked_up and cozmo.robot.anim.trigger.id == 229:
-    #     #if robot.pose.rotation.angle_z.degrees > 90 and robot.pose.rotation.angle_z.degrees < 270:
     else:
         currentState = 0
     return currentState
@@ -75,7 +60,7 @@ def robotMovement(actionNum,robot:cozmo.robot.Robot):
         robot.play_anim("anim_reacttocliff_faceplantroll_02").wait_for_completed()
         time.sleep(5)
     else:
-        robot.say_text("I don´t like to be flipped, please rotate me around again").wait_for_completed()
+        robot.say_text("I don´t like to be flipped, please rotate me around if I am turned").wait_for_completed()
 
 def nextAction(robot:cozmo.robot.Robot):
     nextActRand = randint(0,1)

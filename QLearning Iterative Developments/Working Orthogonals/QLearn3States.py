@@ -43,6 +43,7 @@ def availActions(state):
     currentStateRow = rewards[state][:]
     return currentStateRow
 
+#CALL TO MAIN IN THE REAL IMPLMEMENTATION
 allActs = availActions(initState)
 
 def robotMovement(actionNum,facialExp,currentState,robot:cozmo.robot.Robot):
@@ -85,8 +86,12 @@ def facialExpressionEstimate(robot:cozmo.robot.Robot):
 
 def nextAction(currentState,robot: cozmo.robot.Robot):
     nextActRand = randint(0,3)
-    nextAct = allActs[nextActRand]
-    indexOfNextAct = allActs.index(nextAct)
+    nextAct = actions[nextActRand]
+    
+    # allActs = availActions(currentState)
+    # nextActRand = randint(0,3)
+    # nextAct = allActs[nextActRand]
+    # indexOfNextAct = allActs.index(nextAct)
     facialExp = facialExpressionEstimate(robot)
     robotMovement(indexOfNextAct,facialExp,currentState,robot)
     global nextActionIndex
@@ -94,8 +99,6 @@ def nextAction(currentState,robot: cozmo.robot.Robot):
 
 #Updating Q values
 def update(currentState,action,gamma):
-    global greetedState
-    greet = greetedState
     Q[currentState][action] = round(rewards[currentState][action] + gamma * np.max(rewards[currentState][:]),2)
 
 def findCurrentState(robot: cozmo.robot.Robot):
