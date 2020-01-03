@@ -35,7 +35,7 @@ class QLearnSuperClass(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def findCurrentState(self,robot:cozmo.robot.Robot):
+    def findCurrentState(self):
         pass
 
     @abc.abstractmethod
@@ -68,32 +68,34 @@ class QLearnDistOrthogonal(QLearnSuperClass):
     #Let it be in a stochastic state, if this call does not work (not at the moment)
     #allActs = self.allActions(self.initState)
 
-    def robotMovement(self, actionNum, facialExp, currentState, robot: cozmo.robot.Robot):
+    def robotMovement(self, actionNum, facialExp, currentState):
+        rob = cozmo.robot.Robot
         if (currentState == 0 and facialExp == "happy"):
-            robot.say_text("I will stay here until you tell me to move").wait_for_completed()
+            rob.say_text(rob,"I will stay here until you tell me to move")
+            #robot.say_text(robot,"I will stay here until you tell me to move").wait_for_completed()
         elif (currentState == 2 and facialExp == "happy"):
-            print("Moved backwards")
-            print(robot)
-            robot.say_text("I'm so happy you want me here").wait_for_completed()
+             print("Moved backwards")
+             rob.say_text(rob,"I'm so happy you want me here").wait_for_completed()
         elif (actionNum == 0):
-            print("Moved backwards")
-            robot.say_text("I´m moving back now").wait_for_completed()
-            robot.drive_straight(distance_mm(-150), speed_mmps(50)).wait_for_completed()
+             print("Moved backwards")
+             rob.say_text(rob,"I´m moving back now").wait_for_completed()
+             rob.drive_straight(rob,distance_mm(-100), speed_mmps(50)).wait_for_completed()
         elif (actionNum == 1):
-            print("Moved forward")
-            robot.say_text("I'm moving forward now").wait_for_completed()
-            robot.drive_straight(distance_mm(150), speed_mmps(50)).wait_for_completed()
+             print("Moved forward")
+             rob.say_text(rob,"I'm moving forward now").wait_for_completed()
+             rob.drive_straight(rob,distance_mm(100), speed_mmps(50)).wait_for_completed()
         elif (actionNum == 2):
             print("Greeted")
-            robot.say_text("Hello how are you doing today?").wait_for_completed()
+            rob.say_text(rob,"Hello how are you doing today?").wait_for_completed()
         else:
             print("idle")
-            robot.say_text("I'm not moving this time").wait_for_completed()
+            rob.say_text(rob,"I'm not moving this time").wait_for_completed()
 
-    def nextAction(self, currentState, robot: cozmo.robot.Robot):
+    def nextAction(self, currentState):
+        rob = cozmo.robot.Robot
         nextActRand = randint(0,3)
-        facialExp = self.facialExpressionEstimate(robot)
-        self.robotMovement(nextActRand, facialExp, currentState, robot)
+        facialExp = self.facialExpressionEstimate(rob)
+        self.robotMovement(nextActRand, facialExp, currentState)
         #THIS CAN BE A PROBLEM
         global nextActionIndex
         nextActionIndex = nextActRand
@@ -101,66 +103,72 @@ class QLearnDistOrthogonal(QLearnSuperClass):
     def update(self,currentState,action,gamma):
         self.Q[currentState][action] = round(self.rewards[currentState][action] + gamma * np.max(self.rewards[currentState][:]), 2)
 
-    def findCurrentState(self,robot:cozmo.robot.Robot):
-        self.moveRobotHead(robot)
-        face = self.searchForFace(robot)
+    def findCurrentState(self):
+        self.moveRobotHead()
+        face = self.searchForFace()
         return face
 
-    def trainCozmo(self,robot: cozmo.robot.Robot):
+    def trainCozmo(self):
         # Training the model
         for i in range(2):
             ##FINDS THE DISTANCE WITH THE HUMAN USING POSE
-            currentState = self.findCurrentState(robot)
-            self.nextAction(currentState, robot)
+            currentState = self.findCurrentState()
+            self.nextAction(currentState)
             self.update(currentState, nextActionIndex, self.gamma)
 
-    def moveRobotHead(self,robot:cozmo.robot.Robot):
-        robot.move_lift(-3)
+    def moveRobotHead(self):
+        robot = cozmo.robot.Robot
+        robot.move_lift(robot,-3)
         robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
 
-    def searchForFace(self,robot: cozmo.robot.Robot):
+    def searchForFace(self):
+        rob = cozmo.robot.Robot
         face = None
         initPose = None
         count = 0
+        var = rob.world.visible_faces
+
         while True:
             if face and face.is_visible:
-                for face in robot.world.visible_faces:
-
+                for face in rob.world.visible_faces:
                     print()
                     print("Is this always the same face instance " + str(face))
                     print("THIS IS THE DISTANCE " + str(face.pose.position.x))
-                    robot.pose.define_pose_relative_this(face.pose)
+                    rob.pose.define_pose_relative_this(face.pose)
 
                     if face.pose.position.x < float(350) and face.pose.position.x > float(150):
-                        robot.say_text("I'm currently in the optimal state").wait_for_completed()
+                        rob.say_text("I'm currently in the optimal state").wait_for_completed()
                         currentState = 1
                     elif face.pose.position.x > float(350):
-                        robot.say_text("I´m currently in the far state").wait_for_completed()
+                        rob.say_text("I´m currently in the far state").wait_for_completed()
                         currentState = 0
                     else:
-                        robot.say_text("I'm currently in the close state").wait_for_completed()
+                        rob.say_text("I'm currently in the close state").wait_for_completed()
                         currentState = 2
                     return currentState
             else:
                 try:
-                    robot.say_text("Sorry, I couldn´t find your face, 10 seconds to do it").wait_for_completed()
-                    face = robot.world.wait_for_observed_face(timeout=10)
+                    rob.say_text("Sorry, I couldn´t find your face, 10 seconds to do it").wait_for_completed()
+                    face = rob.world.wait_for_observed_face(timeout=10)
                 except asyncio.TimeoutError:
-                    robot.say_text("Sorry, it will have to be next time").wait_for_completed()
+                    rob.say_text("Sorry, it will have to be next time").wait_for_completed()
                     print("Face not found")
                     return
 
-    def facialExpressionEstimate(self,robot: cozmo.robot.Robot):
+    def facialExpressionEstimate(self, robot:cozmo.robot.Robot):
+        rob = cozmo.robot.Robot
+        var = rob.world.visible_faces
+        var1 = robot.world.visible_faces
         face = None
         while True:
             if face and face.is_visible:
-                robot.enable_facial_expression_estimation(True)
+                rob.enable_facial_expression_estimation(True)
                 return face.expression
             else:
                 try:
-                    face = robot.world.wait_for_observed_face(timeout=10)
+                    face = rob.world.wait_for_observed_face(timeout=10)
                 except asyncio.TimeoutError:
-                    robot.say_text("Sorry it will have to be next time").wait_for_completed()
+                    rob.say_text("Sorry it will have to be next time").wait_for_completed()
                     print("Didn't find a face.")
                     return
 
@@ -209,7 +217,7 @@ class QLearnLiftOrthogonal(QLearnSuperClass):
         nextActionIndex = nextActRand
 
     def trainCozmo(self,robot:cozmo.robot.Robot):
-        for i in range(2):
+        for i in range(5):
             currentState = self.findCurrentState(robot)
             self.nextAction(robot)
             self.update(currentState, nextActionIndex, self.gamma)
@@ -240,8 +248,7 @@ class QLearnTurnOrthogonal(QLearnSuperClass):
 
     def findCurrentState(self,robot:cozmo.robot.Robot):
         robot.enable_all_reaction_triggers(True)
-        angle = str(robot.pose_pitch.degrees)
-        if 90 < float(angle) < 180:
+        if 90 < robot.pose_pitch < 180:
             currentState = 1
         else:
             currentState = 0
@@ -264,7 +271,7 @@ class QLearnTurnOrthogonal(QLearnSuperClass):
         self.Q[currentState][action] = round(self.rewards[currentState][action] + gamma * np.max(self.rewards[currentState][:]), 2)
 
     def trainCozmo(self,robot: cozmo.robot.Robot):
-        for i in range(2):
+        for i in range(5):
             currentState = self.findCurrentState(robot)
             self.nextAction(robot)
             self.update(currentState, nextActionIndex, self.gamma)
@@ -324,7 +331,7 @@ class QLearnGreetOrthogonal(QLearnSuperClass):
         self.Q[currentState][action] = round(self.rewards[currentState][action] + gamma * np.max(self.rewards[currentState][:]), 2)
 
     def trainCozmo(self,robot: cozmo.robot.Robot):
-        for i in range(2):
+        for i in range(5):
             currentState = self.findCurrentState(robot)
             self.nextAction(robot)
             self.update(currentState, nextActionIndex, self.gamma)

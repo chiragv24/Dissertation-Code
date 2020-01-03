@@ -3,6 +3,7 @@ import cozmo
 from cozmo.util import distance_mm
 from QLearnSuperClass import QLearnDistOrthogonal
 
+
 class availableActions(unittest.TestCase):
 
     agent = QLearnDistOrthogonal()
@@ -34,16 +35,15 @@ class availableActions(unittest.TestCase):
 
 class robotMovementTesting(unittest.TestCase):
 
-    agent = QLearnDistOrthogonal()
-    robot = cozmo.robot.Robot
+    def setup(self):
+        self.robot = cozmo.robot.Robot
+        self.agent = QLearnDistOrthogonal()
 
-    def test_closeButHappy(self,robot):
-        robot = self.robot
+    def test_closeButHappy(self,robot:cozmo.robot.Robot):
         """Test robot close but human wants it there"""
-        self.agent.robotMovement(2,"happy",2,robot)
-        #cozmo.run_program(self.agent.robotMovement)
-        #self.agent.robotMovement(2,"happy",2,robot)
-        dist = self.agent.searchForFace(robot)
+        #self.agent.searchForFace()
+        self.agent.robotMovement(2,"happy",2,self.robot)
+        dist = self.agent.searchForFace(self.robot)
         self.assertLessEqual(dist,distance_mm(150))
 
     # def test_farButHappy(self,robot):

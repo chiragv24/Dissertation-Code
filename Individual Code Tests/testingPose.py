@@ -58,20 +58,25 @@ def test2(robot:cozmo.robot.Robot):
                 #     currentState = 1
 
                 print("This is the distance from the human " + str(face.pose.position.x))
-
+                robot.move_lift(-3)
+                robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
                 if face.pose.position.x < float(350) and face.pose.position.x > float(150):
                     robot.say_text("Optimal state").wait_for_completed()
                 elif face.pose.position.x > float(350):
                     robot.say_text("Far state").wait_for_completed()
+                    robot.drive_straight(distance_mm(150), speed_mmps(50)).wait_for_completed()
                 else:
                     robot.say_text("Close state").wait_for_completed()
+                    robot.drive_straight(distance_mm(-150), speed_mmps(50)).wait_for_completed()
 
 
-                # print("Is this always the same face instance " + str(face))
+                    # print("Is this always the same face instance " + str(face))
                 # print("RELATIVE TO FIRST " + str(robot.pose.define_pose_relative_this(firstFace.pose)))
                 # print("THIS IS THE DISTANCE " + str(face.pose.position.x))
                 # print()
         try:
+            robot.move_lift(-3)
+            robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
             robot.say_text("Sorry, I couldn´t find your face, 10 seconds to do it").wait_for_completed()
             face = robot.world.wait_for_observed_face(timeout=10)
         except asyncio.TimeoutError:

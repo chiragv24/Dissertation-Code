@@ -48,7 +48,6 @@ allActs = availActions(initState)
 def findCurrentState(robot: cozmo.robot.Robot):
     robot.enable_all_reaction_triggers(True)
     angle = str(robot.pose_pitch.degrees)
-
     if robot.is_picked_up and 90 < float(angle) < 180:
         currentState = 1
     else:

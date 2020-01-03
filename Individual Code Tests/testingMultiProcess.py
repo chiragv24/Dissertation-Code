@@ -1,4 +1,3 @@
-code for threads and the HW interaction and state check
 
 import cozmo.util
 import cozmo
@@ -28,20 +27,6 @@ def moveRobot(robot:cozmo.robot.Robot):
 
 def sayText(robot:cozmo.robot.Robot):
     robot.say_text("Good to see that you want to play, what should we do").wait_for_completed()
-
-# def voiceComms(robot:cozmo.robot.Robot):
-#     robot.say_text("You can speak whenever, I will detect it and get back to you")
-#     while True:
-#         r = sr.Recognizer()
-#         with sr.Microphone() as source:
-#             audio = r.listen(source)
-#             speech = r.recognize_google(audio)
-#             if "Cosmo" in speech:
-#                 if "Stop" in speech:
-#                     #KILL THE THREAD
-#                 elif "Move" in speech:
-#                     #CHECK THE STATE AND MOVE TO THE OPPOSITE ONE
-
 
 def voiceComms(robot:cozmo.robot.Robot):
     while True:
@@ -82,7 +67,7 @@ def counter():
         print(i * i)
 
 if __name__=='__main__':
-    x = Process(target=)
+    x = Process(target=voiceComms)
     x.start()
     y = Process(target=counter)
     y.start()
