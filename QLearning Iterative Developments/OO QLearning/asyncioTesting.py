@@ -70,78 +70,68 @@ class QLearnDistOrthogonal(QLearnSuperClass):
     #Let it be in a stochastic state, if this call does not work (not at the moment)
     #allActs = self.allActions(self.initState)
 
-    def robotMovement(self, actionNum, facialExp, currentState, robot: cozmo.robot.Robot):
+    async def robotMovement(self, actionNum, facialExp, currentState, robot: cozmo.robot.Robot):
         if (currentState == 0 and facialExp == "happy"):
-            robot.say_text("I will stay here until you tell me to move").wait_for_completed()
+            await robot.say_text("I will stay here until you tell me to move").wait_for_completed()
         elif (currentState == 2 and facialExp == "happy"):
-            print("Moved backwards")
-            print(robot)
-            robot.say_text("I'm so happy you want me here").wait_for_completed()
+            await robot.say_text("I'm so happy you want me here").wait_for_completed()
         elif (actionNum == 0):
-            print("Moved backwards")
-            robot.say_text("I´m moving back now").wait_for_completed()
-            robot.drive_straight(distance_mm(-150), speed_mmps(50)).wait_for_completed()
+            await robot.say_text("I´m moving back now").wait_for_completed()
+            await robot.drive_straight(distance_mm(-150), speed_mmps(50)).wait_for_completed()
         elif (actionNum == 1):
-            print("Moved forward")
-            robot.say_text("I'm moving forward now").wait_for_completed()
-            robot.drive_straight(distance_mm(150), speed_mmps(50)).wait_for_completed()
+            await robot.say_text("I'm moving forward now").wait_for_completed()
+            await robot.drive_straight(distance_mm(150), speed_mmps(50)).wait_for_completed()
         elif (actionNum == 2):
-            print("Greeted")
-            robot.say_text("Hello how are you doing today?").wait_for_completed()
+            await robot.say_text("Hello how are you doing today?").wait_for_completed()
         else:
-            print("idle")
-            robot.say_text("I'm not moving this time").wait_for_completed()
+            await robot.say_text("I'm not moving this time").wait_for_completed()
 
-    def nextAction(self, currentState, robot: cozmo.robot.Robot):
+    async def nextAction(self, currentState, robot: cozmo.robot.Robot):
         nextActRand = randint(0,3)
-        facialExp = self.facialExpressionEstimate(robot)
-        self.robotMovement(nextActRand, facialExp, currentState, robot)
+        facialExp = await self.facialExpressionEstimate(robot)
+        await self.robotMovement(nextActRand, facialExp, currentState, robot)
         #THIS CAN BE A PROBLEM
         global nextActionIndex
         nextActionIndex = nextActRand
 
-    def update(self,currentState,action,gamma):
+    async def update(self,currentState,action,gamma):
         self.Q[currentState][action] = round(self.rewards[currentState][action] + gamma * np.max(self.rewards[currentState][:]), 2)
 
-    def findCurrentState(self,robot:cozmo.robot.Robot):
-        self.moveRobotHead(robot)
-        face = self.searchForFace(robot)
+    async def findCurrentState(self,robot:cozmo.robot.Robot):
+        await self.moveRobotHead(robot)
+        face = await self.searchForFace(robot)
         return face
 
-    def trainCozmo(self,robot: cozmo.robot.Robot):
-        self.lock.acquire()
+    async def trainCozmo(self,robot: cozmo.robot.Robot):
+        #self.lock.acquire()
         # Training the model
         for i in range(1):
             ##FINDS THE DISTANCE WITH THE HUMAN USING POSE
-            currentState = self.findCurrentState(robot)
-            self.nextAction(currentState, robot)
-            self.update(currentState, nextActionIndex, self.gamma)
+            currentState = await self.findCurrentState(robot)
+            await self.nextAction(currentState, robot)
+            await self.update(currentState, nextActionIndex, self.gamma)
         print(self.Q)
-        self.lock.release()
+        #self.lock.release()
 
-    def moveRobotHead(self,robot:cozmo.robot.Robot):
+    async def moveRobotHead(self,robot:cozmo.robot.Robot):
         robot.move_lift(-3)
-        robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
+        await robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
 
-    def searchForFace(self,robot: cozmo.robot.Robot):
+    async def searchForFace(self,robot: cozmo.robot.Robot):
         face = None
         while True:
-            if face and face.is_visible:
+            if face and await face.is_visible:
+
                 for face in robot.world.visible_faces:
 
-                    print()
-                    print("Is this always the same face instance " + str(face))
-                    print("THIS IS THE DISTANCE " + str(face.pose.position.x))
-                    robot.pose.define_pose_relative_this(face.pose)
-
                     if face.pose.position.x < float(350) and face.pose.position.x > float(150):
-                        robot.say_text("I'm currently in the optimal state").wait_for_completed()
+                        await robot.say_text("I'm currently in the optimal state").wait_for_completed()
                         currentState = 1
                     elif face.pose.position.x > float(350):
-                        robot.say_text("I´m currently in the far state").wait_for_completed()
+                        await robot.say_text("I´m currently in the far state").wait_for_completed()
                         currentState = 0
                     else:
-                        robot.say_text("I'm currently in the close state").wait_for_completed()
+                        await robot.say_text("I'm currently in the close state").wait_for_completed()
                         currentState = 2
                     return currentState
             else:
@@ -149,11 +139,10 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                     robot.say_text("Sorry, I couldn´t find your face, 10 seconds to do it").wait_for_completed()
                     face = robot.world.wait_for_observed_face(timeout=10)
                 except asyncio.TimeoutError:
-                    robot.say_text("Sorry, it will have to be next time").wait_for_completed()
-                    print("Face not found")
+                    await robot.say_text("Sorry, it will have to be next time").wait_for_completed()
                     return
 
-    def facialExpressionEstimate(self,robot: cozmo.robot.Robot):
+    async def facialExpressionEstimate(self,robot: cozmo.robot.Robot):
         face = None
         while True:
             if face and face.is_visible:
@@ -161,9 +150,9 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                 return face.expression
             else:
                 try:
-                    face = robot.world.wait_for_observed_face(timeout=10)
+                    face = await robot.world.wait_for_observed_face(timeout=10)
                 except asyncio.TimeoutError:
-                    robot.say_text("Sorry it will have to be next time").wait_for_completed()
+                    await robot.say_text("Sorry it will have to be next time").wait_for_completed()
                     print("Didn't find a face.")
                     return
 

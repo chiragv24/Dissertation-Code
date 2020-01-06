@@ -49,7 +49,7 @@ def robotMovement(actionNum,robot:cozmo.robot.Robot):
     counter = 0
     if(actionNum == 0):
         robot.move_lift(3.0)
-        time.sleep(0.5)
+        time.sleep(1.5)
         robot.move_lift(-3.0)
     else:
         robot.say_text("I like to be on the table, please don´t lift me").wait_for_completed()
