@@ -15,7 +15,7 @@ class robotMovementTesting(generalTestingMethods):
     def setUp(self):
         self.agent = QLearnGreetOrthogonal()
 
-    def test_values(self):
+    def testRobotMovement(self):
         action = self.agent.robotMovement()
         if action == 1:
             self.assertEqual(self.agent.lastAction,"Greeted")

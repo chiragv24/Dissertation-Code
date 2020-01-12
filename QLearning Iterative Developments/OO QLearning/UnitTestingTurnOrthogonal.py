@@ -17,7 +17,14 @@ class robotMovementTesting(generalTestingMethods):
         self.agent = QLearnTurnOrthogonal()
 
     def testRobotMovement(self):
-        ###FINISH OFF THIS TEST#####
+        action = self.agent.robotMovement()
+        if action == 1:
+            self.assertEqual(self.agent.lastState,"Turned")
+        elif action == 0:
+            self.assertEqual(self.agent.lastState,"Not Turned")
+        else:
+            with self.assertRaises(AssertionError):
+                self.agent.robotMovement()
 
 class updateTesting(generalTestingMethods):
 
