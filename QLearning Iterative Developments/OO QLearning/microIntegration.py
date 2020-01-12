@@ -1,34 +1,58 @@
 import speech_recognition as sr
 import cozmo
 import threading
+import sys
+import asyncio
 
-class voiceRecognition:
+class voiceIntegration:
 
-    def voiceCommsAction(self,robot:cozmo.robot.Robot):
-        lock = threading.Lock()
-        while True:
-            speech = self.voiceComms()
-            if "Cozmo".lower() in speech.lower() or "Cosmo".lower() in speech.lower():
-                lock.acquire()
-                robot.say_text("Hello nice to meet you")
-                lock.release()
+   def __init__(self):
+        self.speech = ""
+        self.action = False
+        self.clearSpeech = False
 
-    def voiceComms(self):
-        r = sr.Recognizer()
-        mic = sr.Microphone()
-        speech = ""
-        with mic as source:
-            print("Please speak")
-            r.adjust_for_ambient_noise(source)
-            audio = r.listen(source)
-            try:
-                speech = r.recognize_google(audio)
-                print(speech)
-            except sr.UnknownValueError:
-                print("Not understood, try again please")
-            except sr.RequestError:
-                print("Not understood, try again please")
-            return speech
+   async def voiceCommsAction(self,robot:cozmo.robot.Robot):
+       if self.action:
+           await robot.say_text("Hello, nice to meet you").wait_for_completed()
+       else:
+           print("Sorry address me by name or give me a doable action")
 
 
-#cozmo.run_program(voiceCommsAction)
+    # def voiceCommsAction(self,robot:cozmo.robot.Robot):
+    #     while True:
+    #         if self.clearSpeech:
+    #             if "Cozmo".lower() in speech.lower() or "Cosmo".lower() in speech.lower():
+    #                 robot.say_text("Hello nice to meet you").wait_for_completed()
+
+   def voiceComms(self,loop):
+       while True:
+            r = sr.Recognizer()
+            mic = sr.Microphone()
+            with mic as source:
+                print("Please speak")
+                r.adjust_for_ambient_noise(source)
+                audio = r.listen(source)
+                try:
+                    self.speech = r.recognize_google(audio)
+                    print("Data taken in")
+                    self.clearSpeech = True
+                    print(self.speech)
+                    if self.clearSpeech and "Cozmo".lower() in self.speech.lower() or "Cosmo".lower() in self.speech.lower():
+                        self.action = True
+                        try:
+                            cozmo.connect_on_loop(loop)
+                            cozmo.run_program(self.voiceCommsAction)
+                        except cozmo.ConnectionError as e:
+                            sys.exit("A connection error occurred: %s" % e)
+                except sr.UnknownValueError:
+                    self.clearSpeech = False
+                    print("Not understood, try again please")
+                except sr.RequestError:
+                    self.clearSpeech = False
+                    print("Not understood, try again please")
+                # if self.clearSpeech:
+                #     if "Cozmo".lower() in speech.lower() or "Cosmo".lower() in speech.lower():
+                #         await robot.say_text("Hello, nice to meet you").wait_for_completed()
+                #     else:
+                #         print("Sorry address me by name or give me a doable action")
+

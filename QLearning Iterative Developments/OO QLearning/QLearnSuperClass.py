@@ -60,7 +60,6 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         self.gamma = 0.8
         self.initState = 0
         self.nextActIndex = 0
-        self.lock = threading.Lock()
 
     def allActions(self,state):
         assert state >= 0 and state < len(self.rewards), "Sorry the state is not valid"
@@ -109,15 +108,13 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         return face
 
     def trainCozmo(self,robot: cozmo.robot.Robot):
-        self.lock.acquire()
         # Training the model
-        for i in range(1):
+        for i in range(2):
             ##FINDS THE DISTANCE WITH THE HUMAN USING POSE
             currentState = self.findCurrentState(robot)
             self.nextAction(currentState, robot)
             self.update(currentState, nextActionIndex, self.gamma)
         print(self.Q)
-        self.lock.release()
 
     def moveRobotHead(self,robot:cozmo.robot.Robot):
         robot.move_lift(-3)
@@ -345,3 +342,7 @@ class QLearnGreetOrthogonal(QLearnSuperClass):
             self.update(currentState, nextActionIndex, self.gamma)
         print(self.Q)
         self.lock.release()
+
+
+##############VOICE RECOG ###########################################3
+
