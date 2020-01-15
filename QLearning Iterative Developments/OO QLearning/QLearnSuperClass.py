@@ -335,13 +335,11 @@ class QLearnGreetOrthogonal(QLearnSuperClass):
         self.Q[currentState][action] = round(self.rewards[currentState][action] + gamma * np.max(self.rewards[currentState][:]), 2)
 
     def trainCozmo(self,robot: cozmo.robot.Robot):
-        self.lock.acquire()
         for i in range(1):
             currentState = self.findCurrentState(robot)
             self.nextAction(robot)
             self.update(currentState, nextActionIndex, self.gamma)
         print(self.Q)
-        self.lock.release()
 
 
 ##############VOICE RECOG ###########################################3
