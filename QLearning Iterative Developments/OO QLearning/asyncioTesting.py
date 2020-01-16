@@ -73,14 +73,13 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         t.start()
         newLoop.call_soon_threadsafe(self.voice.voiceComms)
 
-    async def voiceMove(self,robot:cozmo.robot.Robot,dist):
-            if dist == 0:
+    async def voiceMove(self,robot:cozmo.robot.Robot,action):
+            if action == 0:
                 await robot.drive_straight(distance_mm(-150), speed_mmps(50)).wait_for_completed()
-            elif dist == 2:
+            elif action == 2:
                 await robot.drive_straight(distance_mm(150), speed_mmps(50)).wait_for_completed()
-            elif dist == 1:
+            elif action == 1:
                 await robot.say_text("I'm in the best state though").wait_for_completed()
-
 
     async def trainCozmo(self,robot:cozmo.robot.Robot):
         self.makeThread()
@@ -89,15 +88,19 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                 print("This is the voice speech " + self.voice.speech)
                 if "Move".lower() in self.voice.speech.lower():
                     dist = await self.findCurrentState(robot)
-                    await self.voiceMove(robot,dist)
+                    randomAction = randint(0,3)
+                    await self.voiceMove(robot,randomAction)
+                    self.voice.QMove[dist,randomAction] =  self.Q[dist][randomAction] + round(self.rewards[dist][randomAction] + self.gamma * np.max(self.rewards[dist][:]), 2)
                 elif "Stop".lower() in self.voice.speech.lower():
-                    await robot.say_text("Sorry, I am stopping now").wait_for_completed()
-                break
-            else:
-                currentState = await self.findCurrentState(robot)
-                await self.nextAction(currentState, robot)
-                self.update(currentState, nextActionIndex, 0.8)
-                print(self.Q)
+                    randomAction = randint(0,1)
+                    if randomAction == 1:
+                        await robot.say_text("Sorry, I am stopping now").wait_for_completed()
+                    self.voice.QStop[randomAction] = self.Q[randomAction] + round(self.rewards[randomAction] + self.gamma * np.max(self.rewards[:]), 2)
+                    break
+            currentState = await self.findCurrentState(robot)
+            await self.nextAction(currentState, robot)
+            self.update(currentState, nextActionIndex, 0.8)
+            print(self.Q)
 
     def update(self,currentState,action,gamma):
         self.Q[currentState][action] = self.Q[currentState][action] + round(self.rewards[currentState][action] + gamma * np.max(self.rewards[currentState][:]), 2)
@@ -251,17 +254,21 @@ class QLearnGreetOrthogonal(QLearnSuperClass):
         for i in range(5):
             if "Cosmo".lower() in self.voice.speech.lower() or "Cozmo" in self.voice.speech.lower():
                 if "Move".lower() in self.voice.speech.lower():
+                    randomAction = randint(0,3)
                     dist = await self.dist.findCurrentState(robot)
-                    await self.dist.voiceMove(robot,dist)
+                    await self.dist.voiceMove(robot,randomAction)
+                    self.voice.QMove[dist, randomAction] = self.Q[dist][randomAction] + round(self.rewards[dist][randomAction] + self.gamma * np.max(self.rewards[dist][:]), 2)
                 elif "Stop".lower() in self.voice.speech.lower():
-                    await robot.say_text("Sorry, I am stopping now").wait_for_completed()
+                    randomAction = randint(0,1)
+                    if randomAction == 1:
+                        await robot.say_text("Sorry, I am stopping now").wait_for_completed()
+                    self.voice.QStop[randomAction] = self.Q[randomAction] + round(self.rewards[randomAction] + self.gamma * np.max(self.rewards[:]), 2)
                 break
-            else:
-                currentState = await self.findCurrentState(robot)
-                await self.nextAction(robot)
-                self.update(currentState, nextActionIndex, 0.8)
-                print(self.Q)
-                time.sleep(5)
+            currentState = await self.findCurrentState(robot)
+            await self.nextAction(robot)
+            self.update(currentState, nextActionIndex, 0.8)
+            print(self.Q)
+            time.sleep(5)
 
 ###############THIRD ORTHOGONAL #################################################
 
@@ -317,17 +324,22 @@ class QLearnLiftOrthogonal(QLearnSuperClass):
         for i in range (15):
             if "Cosmo".lower() in self.voice.speech.lower() or "Cozmo" in self.voice.speech.lower():
                 if "Move".lower() in self.voice.speech.lower():
+                    randomAction = randint(0, 3)
                     dist = await self.dist.findCurrentState(robot)
-                    await self.dist.voiceMove(robot,dist)
+                    await self.dist.voiceMove(robot,randomAction)
+                    self.voice.QMove[dist, randomAction] = self.Q[dist][randomAction] + round(self.rewards[dist][randomAction] + self.gamma * np.max(self.rewards[dist][:]), 2)
                 elif "Stop".lower() in self.voice.speech.lower():
-                    await robot.say_text("Sorry, I am stopping now").wait_for_completed()
+                    randomAction = randint(0,1)
+                    if randomAction == 1:
+                        await robot.say_text("Sorry, I am stopping now").wait_for_completed()
+                    self.voice.QStop[randomAction] = self.Q[randomAction] + round(self.rewards[randomAction] + self.gamma * np.max(self.rewards[:]), 2)
                 break
             else:
                 currentState = self.findCurrentState(robot)
                 await self.nextAction(robot)
                 self.update(currentState, nextActionIndex, 0.8)
                 print(self.Q)
-                #time.sleep(5)
+                time.sleep(5)
 
     def update(self,currentState,action,gamma):
         print(self.rewards[currentState][:])
@@ -391,19 +403,22 @@ class QLearnTurnOrthogonal(QLearnSuperClass):
 
     async def trainCozmo(self,robot: cozmo.robot.Robot):
         self.makeThread()
-        for i in range (5):
+        for i in range (15):
             if "Cosmo".lower() in self.voice.speech.lower() or "Cozmo" in self.voice.speech.lower():
                 if "Move".lower() in self.voice.speech.lower():
+                    randomAction = randint(0, 3)
                     dist = await self.dist.findCurrentState(robot)
-                    await self.dist.voiceMove(robot,dist)
+                    await self.dist.voiceMove(robot,randomAction)
+                    self.voice.QMove[dist, randomAction] = self.Q[dist][randomAction] + round(self.rewards[dist][randomAction] + self.gamma * np.max(self.rewards[dist][:]), 2)
                 elif "Stop".lower() in self.voice.speech.lower():
-                    await robot.say_text("Sorry, I am stopping now").wait_for_completed()
+                    randomAction = randint(0,1)
+                    if randomAction == 1:
+                        await robot.say_text("Sorry, I am stopping now").wait_for_completed()
+                    self.voice.QStop[randomAction] = self.Q[randomAction] + round(self.rewards[randomAction] + self.gamma * np.max(self.rewards[:]), 2)
                 break
             else:
-                currentState = await self.findCurrentState(robot)
+                currentState = self.findCurrentState(robot)
                 await self.nextAction(robot)
                 self.update(currentState, nextActionIndex, 0.8)
                 print(self.Q)
                 time.sleep(5)
-
-
