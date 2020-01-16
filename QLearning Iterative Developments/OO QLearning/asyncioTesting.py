@@ -3,6 +3,7 @@ import asyncio
 from cozmo.util import distance_mm, speed_mmps
 from random import randint
 import numpy as np
+import time
 import abc
 from threading import Thread
 from microIntegration import voiceIntegration
@@ -17,6 +18,8 @@ class QLearnSuperClass(abc.ABC):
         self.states = []
         self.actions = []
         self.rewards = []
+        self.voice = voiceIntegration()
+        self.loop = asyncio.get_event_loop()
 
     # @abc.abstractmethod
     # def allActions(self,state):
@@ -64,27 +67,31 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         asyncio.set_event_loop(loop)
         loop.run_forever()
 
-    async def voiceMove(self,robot:cozmo.robot.Robot):
-        print("This is the voice speech " + self.voice.speech)
-        if "Move".lower() in self.voice.speech.lower():
-            dist = await self.findCurrentState(robot)
+    def makeThread(self):
+        newLoop = asyncio.new_event_loop()
+        t = Thread(target=self.startLoop, args=(newLoop,), daemon=True)
+        t.start()
+        newLoop.call_soon_threadsafe(self.voice.voiceComms)
+
+    async def voiceMove(self,robot:cozmo.robot.Robot,dist):
             if dist == 0:
                 await robot.drive_straight(distance_mm(-150), speed_mmps(50)).wait_for_completed()
             elif dist == 2:
                 await robot.drive_straight(distance_mm(150), speed_mmps(50)).wait_for_completed()
             elif dist == 1:
                 await robot.say_text("I'm in the best state though").wait_for_completed()
-            elif "Stop".lower() in self.voice.speech.lower():
-                await robot.say_text("Sorry, I am stopping now").wait_for_completed()
+
 
     async def trainCozmo(self,robot:cozmo.robot.Robot):
-        newLoop = asyncio.new_event_loop()
-        t = Thread(target=self.startLoop, args=(newLoop,), daemon=True)
-        t.start()
-        newLoop.call_soon_threadsafe(self.voice.voiceComms)
+        self.makeThread()
         for i in range (5):
             if "Cosmo".lower() in self.voice.speech.lower() or "Cozmo" in self.voice.speech.lower():
-                await self.voiceMove(robot)
+                print("This is the voice speech " + self.voice.speech)
+                if "Move".lower() in self.voice.speech.lower():
+                    dist = await self.findCurrentState(robot)
+                    await self.voiceMove(robot,dist)
+                elif "Stop".lower() in self.voice.speech.lower():
+                    await robot.say_text("Sorry, I am stopping now").wait_for_completed()
                 break
             else:
                 currentState = await self.findCurrentState(robot)
@@ -93,7 +100,7 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                 print(self.Q)
 
     def update(self,currentState,action,gamma):
-        self.Q[currentState][action] = round(self.rewards[currentState][action] + gamma * np.max(self.rewards[currentState][:]), 2)
+        self.Q[currentState][action] = self.Q[currentState][action] + round(self.rewards[currentState][action] + gamma * np.max(self.rewards[currentState][:]), 2)
 
     async def nextAction(self,currentState,robot:cozmo.robot.Robot):
         nextActRand = randint(0, 3)
@@ -202,7 +209,7 @@ class QLearnGreetOrthogonal(QLearnSuperClass):
         else:
             self.greeted = True
 
-    def findCurrentState(self,robot:cozmo.robot.Robot):
+    async def findCurrentState(self,robot:cozmo.robot.Robot):
         ##Greeted is state 0 and not greeted is state 1
         self.randomState()
         if self.greeted == False:
@@ -227,18 +234,176 @@ class QLearnGreetOrthogonal(QLearnSuperClass):
         nextActionIndex = nextActRand
 
     def update(self,currentState,action,gamma):
-        self.Q[currentState][action] = round(self.rewards[currentState][action] + gamma * np.max(self.rewards[currentState][:]), 2)
+        self.Q[currentState][action] =  self.Q[currentState][action] + round(self.rewards[currentState][action] + gamma * np.max(self.rewards[currentState][:]), 2)
 
-    async def trainCozmo(self,robot: cozmo.robot.Robot):
+    def startLoop(self, loop):
+        asyncio.set_event_loop(loop)
+        loop.run_forever()
+
+    def makeThread(self):
+        newLoop = asyncio.new_event_loop()
+        t = Thread(target=self.startLoop, args=(newLoop,), daemon=True)
+        t.start()
+        newLoop.call_soon_threadsafe(self.voice.voiceComms)
+
+    async def trainCozmo(self, robot: cozmo.robot.Robot):
+        self.makeThread()
         for i in range(5):
-            print("This is the voice speech " + self.voice.speech)
             if "Cosmo".lower() in self.voice.speech.lower() or "Cozmo" in self.voice.speech.lower():
-                self.dist.voiceMove(robot)
+                if "Move".lower() in self.voice.speech.lower():
+                    dist = await self.dist.findCurrentState(robot)
+                    await self.dist.voiceMove(robot,dist)
+                elif "Stop".lower() in self.voice.speech.lower():
+                    await robot.say_text("Sorry, I am stopping now").wait_for_completed()
+                break
+            else:
+                currentState = await self.findCurrentState(robot)
+                await self.nextAction(robot)
+                self.update(currentState, nextActionIndex, 0.8)
+                print(self.Q)
+                time.sleep(5)
+
+###############THIRD ORTHOGONAL #################################################
+
+class QLearnLiftOrthogonal(QLearnSuperClass):
+
+    nextActionIndex = 0
+
+    def __init__(self):
+        super(QLearnLiftOrthogonal, self).__init__()
+        self.actions = [0, 1]
+        self.rewards = [[-0.5, 1], [-1.5, 2]]
+        self.Q = [[0, 0], [0, 0]]
+        self.states = [0, 1]
+        self.gamma = 0
+        self.initState = 0
+        self.nextActIndex = 0
+        self.voice = voiceIntegration()
+        self.dist = QLearnDistOrthogonal()
+
+    def findCurrentState(self,robot:cozmo.robot.Robot):
+        if robot.is_picked_up:
+            currentState = 1
+        else:
+            currentState = 0
+        return currentState
+
+    async def robotMovement(self,actionNum,robot:cozmo.robot.Robot):
+        if actionNum == 0:
+            await robot.play_anim("anim_reacttocliff_pickup_01").wait_for_completed()
+            print("Picked up ")
+        else:
+            await robot.say_text("I like to be on the table, don´t pick me").wait_for_completed()
+            print("On table")
+
+    async def nextAction(self,robot:cozmo.robot.Robot):
+        nextActRand = randint(0,1)
+        await self.robotMovement(nextActRand,robot)
+        global nextActionIndex
+        nextActionIndex = nextActRand
+
+    def startLoop(self, loop):
+        asyncio.set_event_loop(loop)
+        loop.run_forever()
+
+    def makeThread(self):
+        newLoop = asyncio.new_event_loop()
+        t = Thread(target=self.startLoop, args=(newLoop,), daemon=True)
+        t.start()
+        newLoop.call_soon_threadsafe(self.voice.voiceComms)
+
+    async def trainCozmo(self, robot: cozmo.robot.Robot):
+        self.makeThread()
+        for i in range (15):
+            if "Cosmo".lower() in self.voice.speech.lower() or "Cozmo" in self.voice.speech.lower():
+                if "Move".lower() in self.voice.speech.lower():
+                    dist = await self.dist.findCurrentState(robot)
+                    await self.dist.voiceMove(robot,dist)
+                elif "Stop".lower() in self.voice.speech.lower():
+                    await robot.say_text("Sorry, I am stopping now").wait_for_completed()
                 break
             else:
                 currentState = self.findCurrentState(robot)
                 await self.nextAction(robot)
-                self.update(currentState, nextActionIndex, self.gamma)
+                self.update(currentState, nextActionIndex, 0.8)
                 print(self.Q)
+                #time.sleep(5)
+
+    def update(self,currentState,action,gamma):
+        print(self.rewards[currentState][:])
+        self.Q[currentState][action] = self.Q[currentState][action] + round(self.rewards[currentState][action] + gamma * np.max(self.rewards[currentState][:]), 2)
+
+###############FOURTH ORTHOGONAL ########################################################
+
+class QLearnTurnOrthogonal(QLearnSuperClass):
+
+    nextActionIndex = 0
+
+    def __init__(self):
+        super(QLearnTurnOrthogonal, self).__init__()
+        self.actions = [0, 1]
+        self.rewards = [[-0.5, 1.5], [-1.5, 1]]
+        self.Q = [[0, 0, 0, 0], [0, 0, 0, 0]]
+        self.states = [0, 1]
+        self.gamma = 0
+        self.initState = 0
+        self.nextActIndex = 0
+        self.voice = voiceIntegration()
+        self.dist = QLearnDistOrthogonal()
+        self.greet = QLearnGreetOrthogonal()
+
+    async def findCurrentState(self,robot:cozmo.robot.Robot):
+        robot.enable_all_reaction_triggers(True)
+        angle = str(robot.pose_pitch.degrees)
+        if 90 < float(angle) < 180:
+            currentState = 1
+        else:
+            currentState = 0
+        return currentState
+
+    async def robotMovement(self,actionNum,robot:cozmo.robot.Robot):
+        if(actionNum==1):
+            print("THIS IS THE TURNED AROUND ORTHOGONAL")
+            await robot.play_anim("anim_reacttocliff_faceplantroll_02").wait_for_completed()
+            time.sleep(5)
+        else:
+            print("THIS IS THE TURNED AROUND ORTHOGONAL")
+            await robot.say_text("I don´t like to be flipped, please rotate me around again").wait_for_completed()
+
+    async def nextAction(self,robot:cozmo.robot.Robot):
+        nextActRand = randint(0,1)
+        await self.robotMovement(nextActRand,robot)
+        global nextActionIndex
+        nextActionIndex = nextActRand
+
+    def update(self,currentState,action,gamma):
+        self.Q[currentState][action] = round(self.rewards[currentState][action] + gamma * np.max(self.rewards[currentState][:]), 2)
+
+    def startLoop(self, loop):
+        asyncio.set_event_loop(loop)
+        loop.run_forever()
+
+    def makeThread(self):
+        newLoop = asyncio.new_event_loop()
+        t = Thread(target=self.startLoop, args=(newLoop,), daemon=True)
+        t.start()
+        newLoop.call_soon_threadsafe(self.voice.voiceComms)
+
+    async def trainCozmo(self,robot: cozmo.robot.Robot):
+        self.makeThread()
+        for i in range (5):
+            if "Cosmo".lower() in self.voice.speech.lower() or "Cozmo" in self.voice.speech.lower():
+                if "Move".lower() in self.voice.speech.lower():
+                    dist = await self.dist.findCurrentState(robot)
+                    await self.dist.voiceMove(robot,dist)
+                elif "Stop".lower() in self.voice.speech.lower():
+                    await robot.say_text("Sorry, I am stopping now").wait_for_completed()
+                break
+            else:
+                currentState = await self.findCurrentState(robot)
+                await self.nextAction(robot)
+                self.update(currentState, nextActionIndex, 0.8)
+                print(self.Q)
+                time.sleep(5)
 
 
