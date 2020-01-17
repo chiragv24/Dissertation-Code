@@ -1,4 +1,3 @@
-
 from asyncioTesting import QLearnDistOrthogonal
 from asyncioTesting import QLearnGreetOrthogonal
 from asyncioTesting import QLearnLiftOrthogonal
@@ -23,10 +22,19 @@ def cozmoLift():
 def cozmoTurn():
     cozmo.run_program(agent4.trainCozmo)
 
-#cozmoDist()
-#cozmoGreet()
-cozmoLift()
-##cozmoTurn()
+
+#Training sessions
+cozmoDist()
+# cozmoGreet()
+# cozmoLift()
+# cozmoTurn()
+
+#Testing sessions
+
+for i in range (100):
+    cozmo.run_program(agent1.testCozmo)
+
+
 
 
 

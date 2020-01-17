@@ -72,6 +72,7 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         self.robotLiftPositionBef = 0
         self.distanceFromFace = 0
         self.voice = voiceIntegration()
+        self.totalScore = 0
 
     async def robotSayTextIdle(self, robot: cozmo.robot.Robot):
         await robot.say_text("I'm happy to stay here until you tell me to move").wait_for_completed()
@@ -142,8 +143,8 @@ class QLearnDistOrthogonal(QLearnSuperClass):
             self.robotHeadPosition = cozmo.robot.MAX_HEAD_ANGLE
             await robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
 
-    def robotHeadMoveHelper(self):
-        cozmo.run_program(self.robotHeadMoveHW)
+    async def robotHeadMoveHelper(self):
+        await cozmo.run_program(self.robotHeadMoveHW)
 
     async def findCurrentStateHW(self,robot:cozmo.robot.Robot):
         face = None
@@ -153,7 +154,7 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                     print()
                     print("Is this always the same face instance " + str(face))
                     print("THIS IS THE DISTANCE " + str(face.pose.position.x))
-                    robot.pose.define_pose_relative_this(face.pose)
+                    await robot.pose.define_pose_relative_this(face.pose)
                     self.distanceFromFace = face.pose.position.x
 
                     if face.pose.position.x < float(350) and face.pose.position.x > float(150):
@@ -176,8 +177,8 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                     print("Face not found")
                     return
 
-    def findCurrentState(self):
-        cozmo.run_program(self.findCurrentStateHW)
+    async def findCurrentState(self):
+        await cozmo.run_program(self.findCurrentStateHW)
 
     async def facialExpEstimateHW(self, robot: cozmo.robot.Robot):
         face = None
@@ -194,14 +195,20 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                     print("Didn't find a face.")
                     return
 
-    def facialExpressionEstimate(self):
-        cozmo.run_program(self.facialExpEstimateHW)
+    async def facialExpressionEstimate(self):
+        await cozmo.run_program(self.facialExpEstimateHW)
 
     def update(self,currentState,action,gamma):
         assert 0 <= currentState <= 2
         assert 0 <= action <= 3
         assert 0 <= gamma <= 1
-        self.Q[currentState][action] = self.Q[currentState][action] + round(self.rewards[currentState][action] + gamma * np.max(self.rewards[currentState][:]), 2)
+
+        #self.Q[currentState][action] = round(self.rewards[currentState][action] + gamma * np.max(self.rewards[currentState][:]), 2)
+        maxValueAction = np.where(self.Q[action,:] == np.max(self.Q[action,:]))[1]
+        if maxValueAction.shape[0] > 1:
+            maxValueAction = int(np.random.choice(maxValueAction, size= 1))
+        maxValue = self.Q[action][maxValueAction]
+        self.Q[currentState][action] = self.Q[currentState][action] + round(self.rewards[currentState][action] + gamma * maxValue, 2)
 
     def startLoop(self,loop):
         asyncio.set_event_loop(loop)
@@ -221,27 +228,48 @@ class QLearnDistOrthogonal(QLearnSuperClass):
             elif action == 1:
                 await robot.say_text("I'm in the best state though").wait_for_completed()
 
-    async def trainCozmo(self,robot:cozmo.robot.Robot):
-        self.makeThread()
+    def trainCozmo(self,robot:cozmo.robot.Robot):
+        #self.makeThread()
         for i in range (5):
-            if "Cosmo".lower() in self.voice.speech.lower() or "Cozmo" in self.voice.speech.lower():
-                print("This is the voice speech " + self.voice.speech)
-                if "Move".lower() in self.voice.speech.lower():
-                    dist = await self.findCurrentStateHW(robot)
-                    randomAction = randint(0,3)
-                    await self.voiceMove(robot,randomAction)
-                    self.voice.QMove[dist,randomAction] =  self.Q[dist][randomAction] + round(self.rewards[dist][randomAction] + self.gamma * np.max(self.rewards[dist][:]), 2)
-                elif "Stop".lower() in self.voice.speech.lower():
-                    randomAction = randint(0,1)
-                    if randomAction == 1:
-                        await robot.say_text("Sorry, I am stopping now").wait_for_completed()
-                    self.voice.QStop[randomAction] = self.Q[randomAction] + round(self.rewards[randomAction] + self.gamma * np.max(self.rewards[:]), 2)
-                    break
+            # if "Cosmo".lower() in self.voice.speech.lower() or "Cozmo" in self.voice.speech.lower():
+            #     print("This is the voice speech " + self.voice.speech)
+            #     if "Move".lower() in self.voice.speech.lower():
+            #         dist = await self.findCurrentStateHW(robot)
+            #         randomAction = randint(0,3)
+            #         await self.voiceMove(robot,randomAction)
+            #         self.voice.QMove[dist,randomAction] =  self.Q[dist][randomAction] + round(self.rewards[dist][randomAction] + self.gamma * np.max(self.rewards[dist][:]), 2)
+            #     elif "Stop".lower() in self.voice.speech.lower():
+            #         randomAction = randint(0,1)
+            #         if randomAction == 1:
+            #             await robot.say_text("Sorry, I am stopping now").wait_for_completed()
+            #         self.voice.QStop[randomAction] = self.Q[randomAction] + round(self.rewards[randomAction] + self.gamma * np.max(self.rewards[:]), 2)
+            #         break
+            self.findCurrentState()
+            act = self.nextAction()
+            self.facialExpressionEstimate()
+            self.robotMovement(act, self.facialExpression, self.currentState)
+            self.update(self.currentState, nextActionIndex, self.gamma)
+
+    def nextActionMax(self):
+        maxAction = np.where(self.Q[self.currentState][:] == np.max(self.Q[self.currentState][:]))[1]
+        return maxAction
+
+    def totalScore(self,action,state):
+        self.totalScore += self.Q[action][state]
+
+    async def testCozmo(self):
+        self.makeThread()
         await self.findCurrentState()
-        act = self.nextAction()
+        act = self.nextActionMax()
         await self.facialExpressionEstimate()
-        await self.robotMovement(act, self.facialExpression, self.currentState)
-        self.update(self.currentState, nextActionIndex, self.gamma)
+        await self.robotMovement(act,self.facialExpression,self.currentState)
+        self.totalScore += self.Q[act][self.currentState]
+
+
+
+
+
+
 
 ###########################SECOND ORTHOGONAL#############################################33
 
@@ -334,6 +362,10 @@ class QLearnGreetOrthogonal(QLearnSuperClass):
             print(self.Q)
             time.sleep(5)
 
+
+
+
+
 #########################THIRD ORTHOGONAL############################################33
 
 class QLearnTurnOrthogonal(QLearnSuperClass):
@@ -413,8 +445,7 @@ class QLearnTurnOrthogonal(QLearnSuperClass):
                     randomAction = randint(0, 1)
                     if randomAction == 1:
                         await robot.say_text("Sorry, I am stopping now").wait_for_completed()
-                    self.voice.QStop[randomAction] = self.Q[randomAction] + round(
-                        self.rewards[randomAction] + self.gamma * np.max(self.rewards[:]), 2)
+                    self.voice.QStop[randomAction] = self.Q[randomAction] + round(self.rewards[randomAction] + self.gamma * np.max(self.rewards[:]), 2)
                 break
             else:
                 await self.findCurrentState()
@@ -512,4 +543,4 @@ class QLearnLiftOrthogonal(QLearnSuperClass):
         assert currentState == 0 or currentState == 1
         assert action == 0 or action == 1
         assert 0 < gamma <=1
-        self.Q[currentState][action] = self.Q[currentState][action] + round(self.rewards[currentState][action] + gamma
+        #self.Q[currentState][action] = self.Q[currentState][action] + round(self.rewards[currentState][action] + gamma
