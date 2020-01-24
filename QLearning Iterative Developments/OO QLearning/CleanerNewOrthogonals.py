@@ -18,7 +18,6 @@ class QLearnSuperClass(abc.ABC):
         self.nextActIndex = 0
         self.Q = []
         self.states = []
-        self.actions = []
         self.rewards = []
         self.rate = 0.3
         self.voice = voiceIntegration()
@@ -42,6 +41,10 @@ class QLearnSuperClass(abc.ABC):
 
     @abc.abstractmethod
     def trainCozmo(self,robot:cozmo.robot.Robot):
+        pass
+
+    @abc.abstractmethod
+    def testCozmo(self,robot:cozmo.robot.Robot):
         pass
 
     async def voiceMove(self,robot:cozmo.robot.Robot,action):
@@ -430,6 +433,9 @@ class QLearnTurnOrthogonal(QLearnSuperClass):
 
     async def nextAction(self,robot:cozmo.robot.Robot):
         self.lift.nextAction(robot)
+
+    async def nextActionMax(self,currentState, robot:cozmo.robot.Robot):
+        self.lift.nextActionMax(currentState, robot)
 
     async def trainCozmo(self,robot: cozmo.robot.Robot):
         self.makeThread()
