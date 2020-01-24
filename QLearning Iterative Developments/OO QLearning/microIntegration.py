@@ -15,32 +15,27 @@ class voiceIntegration():
         self.moveRewards = [[2,-0.5,-2,-5],[-1,0,0.5,-5],[-2.5,-1,1,-5]]
         self.stopRewards =[2,-2]
         self.QStop = [0,0]
-
-   async def voiceCommsActionHw(self, robot: cozmo.robot.Robot):
-       await robot.say_text("Hello nice to meet you").wait_for_completed()
-
-   def voiceCommsAction(self):
-       cozmo.run_program(self.voiceCommsActionHw)
+        self.sleepTime = 0
 
    def voiceComms(self):
-    while True:
-        r = sr.Recognizer()
-        mic = sr.Microphone()
-        with mic as source:
-            print("Please speak")
-            r.adjust_for_ambient_noise(source)
-            audio = r.listen(source)
-            try:
-                self.speech = r.recognize_google(audio)
-                print("Data taken in")
-                self.clearSpeech = True
-                print(self.speech)
-                if "Move".lower() in self.speech.lower() or "Stop".lower() in self.speech.lower():
-                    time.sleep(20)
-                #     cozmo.run_program(self.voiceCommsAction)
-            except sr.UnknownValueError:
-                self.clearSpeech = False
-                print("Not understood, try again please")
-            except sr.RequestError:
-                self.clearSpeech = False
-                print("Not understood, try again please")
+        while True:
+            r = sr.Recognizer()
+            mic = sr.Microphone()
+            with mic as source:
+                print("Please speak")
+                r.adjust_for_ambient_noise(source)
+                audio = r.listen(source)
+                try:
+                    self.speech = r.recognize_google(audio)
+                    print("Data taken in")
+                    self.clearSpeech = True
+                    print(self.speech)
+                    if "Move".lower() in self.speech.lower() or "Stop".lower() in self.speech.lower():
+                        time.sleep(self.sleepTime)
+                        self.speech = ""
+                except sr.UnknownValueError:
+                    self.clearSpeech = False
+                    print("Not understood, try again please")
+                except sr.RequestError:
+                    self.clearSpeech = False
+                    print("Not understood, try again please")

@@ -4,7 +4,8 @@ import sys
 from cozmo.util import distance_mm
 #from QLearnSuperClass import QLearnDistOrthogonal
 import numpy as np
-from SuperClassParamTesting import QLearnDistOrthogonal
+from asyncioTesting import QLearnDistOrthogonal
+
 
 class robotMovementTesting(unittest.TestCase):
 
@@ -12,54 +13,56 @@ class robotMovementTesting(unittest.TestCase):
         self.robot = cozmo.robot.Robot
         self.agent = QLearnDistOrthogonal()
 
-    def test_closeButHappy(self):
+    async def test_closeButHappy(self):
         """Test robot close but human wants it there"""
-        rob = self.agent.robotMovement(2,"happy",0)
+        rob = await self.agent.robotMovement(2,"happy",0,self.robot)
         self.assertEqual(rob,"staying far")
 
-    def test_farButHappy(self):
-        rob = self.agent.robotMovement(2,"happy",0)
+    async def test_farButHappy(self):
+        """Test robot far but human wants it there"""
+        rob = await self.agent.robotMovement(2,"happy",0,self.robot)
         self.assertEqual(rob,"staying close")
 
-    def test_moveBack(self):
-        rob = self.agent.robotMovement(0, "happy", 1)
+    async def test_moveBack(self):
+        "Test a situation where the robot moves backwards"
+        rob = await self.agent.robotMovement(0, "happy", 1,self.robot)
         self.assertEqual(rob, "moving backwards")
 
-    def test_moveFront(self):
-        rob = self.agent.robotMovement(1,"neutral", 0)
+    async def test_moveFront(self):
+        rob = await self.agent.robotMovement(1,"neutral", 0,self.robot)
         self.assertEqual(rob, "moving forwards")
 
-    def test_moveGreet(self):
-        rob = self.agent.robotMovement(2, "sad", 1)
+    async def test_moveGreet(self):
+        rob = await self.agent.robotMovement(2, "sad", 1,self.robot)
         self.assertEqual(rob,"greeting")
 
-    def test_idle(self):
-        rob = self.agent.robotMovement(3,"sad",0)
+    async def test_idle(self):
+        rob = await self.agent.robotMovement(3,"sad",0,self.robot)
         self.assertEqual(rob,"idle")
 
-    def test_integer(self):
+    async def test_integer(self):
         with self.assertRaises(AssertionError):
-            self.agent.robotMovement(2,2,4)
+            await self.agent.robotMovement(2,2,4,self.robot)
 
-    def test_string(self):
+    async def test_string(self):
         with self.assertRaises(TypeError):
-            self.agent.robotMovement("hello","angry",1)
+            await self.agent.robotMovement("hello","angry",1,self.robot)
 
-    def test_stringState(self):
+    async def test_stringState(self):
         with self.assertRaises(AssertionError):
-            self.agent.robotMovement(1,"angry","0")
+            await self.agent.robotMovement(1,"angry","0",self.robot)
 
-    def test_notValidState(self):
+    async def test_notValidState(self):
         with self.assertRaises(AssertionError):
-            self.agent.robotMovement(1,"happy",4)
+            await self.agent.robotMovement(1,"happy",4,self.robot)
 
-    def test_notValidAction(self):
+    async def test_notValidAction(self):
         with self.assertRaises(AssertionError):
-            self.agent.robotMovement(4, "happy", 1)
+            await self.agent.robotMovement(4, "happy", 1,self.robot)
 
-    def test_notValidFace(self):
+    async def test_notValidFace(self):
         with self.assertRaises(AssertionError):
-            self.agent.robotMovement(0, "Joyful", 1)
+            await self.agent.robotMovement(0, "Joyful", 1,self.robot)
 
 class testNextAction(unittest.TestCase):
 

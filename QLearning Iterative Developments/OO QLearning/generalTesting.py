@@ -1,16 +1,18 @@
 import unittest
+import asyncio
 import cozmo
 import sys
 from cozmo.util import distance_mm
 #from QLearnSuperClass import QLearnDistOrthogonal
 import numpy as np
 import abc
-from SuperClassParamTesting import QLearnTurnOrthogonal
-from SuperClassParamTesting import QLearnGreetOrthogonal
-from SuperClassParamTesting import QLearnLiftOrthogonal
-from SuperClassParamTesting import QLearnSuperClass
+import aiounittest
+from asyncioTesting import QLearnTurnOrthogonal
+from asyncioTesting import QLearnGreetOrthogonal
+from asyncioTesting import QLearnLiftOrthogonal
+from asyncioTesting import QLearnSuperClass
 
-class generalTestingMethods(unittest.TestCase):
+class generalTestingMethods(aiounittest.AsyncTestCase):
 
     def setUp(self):
         self.type = ""
@@ -21,24 +23,15 @@ class generalTestingMethods(unittest.TestCase):
         elif self.type.lower() == "greet":
             self.agent = QLearnGreetOrthogonal()
 
-    def tCurrentStates(self):
-        state = self.agent.findCurrentState()
-        if self.agent.lastAction == 0:
+    def tCurrentStates(self,robot:cozmo.robot.Robot):
+        state = self.agent.findCurrentState(robot)
+        if self.agent.greeted == 0:
             self.assertEqual(state, 0)
-        elif self.agent.lastAction == 1:
+        elif self.agent.greeted == 1:
             self.assertEqual(state, 1)
         else:
             with self.assertRaises(AssertionError):
-                self.agent.findCurrentState()
-
-    def tQMatrixUpdate(self):
-        currentState = 1
-        action = 0
-        gamma = 0.8
-        valBefore = self.agent.Q[currentState][action]
-        self.agent.update(currentState,action,0.8)
-        valAfter = valBefore + self.agent.rewards[currentState][action] + gamma * np.max(self.agent.rewards[currentState][:])
-        self.assertEqual(valAfter,self.agent.Q[currentState][action])
+                self.agent.findCurrentState(robot)
 
     def tnegativeState(self):
         with self.assertRaises(AssertionError):
@@ -79,3 +72,22 @@ class generalTestingMethods(unittest.TestCase):
     def tstringGamma(self):
         with self.assertRaises(TypeError):
             self.agent.update(1,1,"0.3")
+
+    async def tstringStateMax(self,robot:cozmo.robot.Robot):
+        with self.assertRaises(AssertionError):
+            await self.agent.nextActionMax("Hello",robot)
+
+    async def tnegStateMax(self,robot:cozmo.robot.Robot):
+        with self.assertRaises(AssertionError):
+            await self.agent.nextActionMax(-1,robot)
+
+    async def tdecStateMax(self,robot:cozmo.robot.Robot):
+        with self.assertRaises(AssertionError):
+            await self.agent.nextActionMax(0.5,robot)
+
+    async def tTestNextMax(self,robot:cozmo.robot.Robot):
+        self.agent.Q = [[0,1],[1,2]]
+        maxValue = 2
+        await self.agent.nextActionMax(1,robot)
+        self.assertEqual(maxValue,self.agent.maxAction)
+
