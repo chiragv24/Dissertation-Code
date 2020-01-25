@@ -4,10 +4,9 @@ from cozmo.util import distance_mm, speed_mmps
 from random import randint
 import numpy as np
 import time
+from multiprocessing import Process
 import abc
-import threading
 from threading import Thread
-import ctypes
 from microIntegration import voiceIntegration
 
 class QLearnSuperClass(abc.ABC):
@@ -23,6 +22,7 @@ class QLearnSuperClass(abc.ABC):
         self.rewards = []
         self.rate = 0.3
         self.voice = voiceIntegration()
+
 
     @abc.abstractmethod
     def robotMovement(self,*args,**kwargs):
@@ -46,13 +46,6 @@ class QLearnSuperClass(abc.ABC):
 
     @abc.abstractmethod
     def testCozmo(self,robot:cozmo.robot.Robot):
-        pass
-
-    @abc.abstractmethod
-    def threadId(self):
-        pass
-
-    def raiseException(self):
         pass
 
     async def voiceMove(self,robot:cozmo.robot.Robot,action):
@@ -131,19 +124,18 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         self.totalScore = 0
         self.rate = 0.3
         self.voice.sleepTime = 30
-        self.name = "voice"
 
     def startLoop(self,loop):
         asyncio.set_event_loop(loop)
         loop.run_forever()
 
-    def makeThread(self):
+    def makeProcess(self):
         newLoop = asyncio.new_event_loop()
-        t = Thread(target=self.startLoop, args=(newLoop,), daemon=True)
-        t.name = "voice"
-        t.start()
-        newLoop.call_soon_threadsafe(self.voice.voiceComms)
-        return t
+        p = Process(target=self.startLoop,args=(newLoop,))
+        p.daemon = True
+        p.start()
+        newLoop.call_soon(self.voice.voiceComms)
+        return p
 
     async def nextAction(self,currentState,robot:cozmo.robot.Robot):
         nextActRand = randint(0, 3)
@@ -245,21 +237,9 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         await self.robotMovement(self.maxAction,facialExp,currentState,robot)
         return self.maxAction
 
-    def threadId(self):
-        print(threading._active.items())
-        if hasattr(self, 'name'):
-            return self.name
-        for name, thread in threading._active.items():
-            if thread is self:
-                return name
-
-    def raiseException(self):
-        self.threadId()
-        threading._shutdown()
-
     async def trainCozmo(self,robot:cozmo.robot.Robot):
         await robot.say_text("I'm training my distance perception now").wait_for_completed()
-        self.makeThread()
+        process = self.makeProcess()
         for i in range(1):
             await super().speechCheck(robot)
             currentState = await self.findCurrentState(robot)
@@ -269,11 +249,11 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                 print("This is the basic Q Matrix " + str(self.Q))
             else:
                 await robot.say_text("Sorry, I didnt find your face, please try putting it in my vision for best results").wait_for_completed()
-        self.raiseException()
+        process.terminate()
+        print(process)
 
     async def testCozmo(self,robot:cozmo.robot.Robot):
         await robot.say_text("I'm going to be tested now").wait_for_completed()
-        #self.makeThread()
         for i in range (1):
             await super().speechCheckTest(robot)
             currentState = await self.findCurrentState(robot)
@@ -309,9 +289,9 @@ class QLearnLiftOrthogonal(QLearnSuperClass):
         self.rate = 0.3
         self.voice.sleepTime = 12
         self.dist = QLearnDistOrthogonal()
-        self.name = "voice"
 
     async def findCurrentState(self,robot:cozmo.robot.Robot):
+        currentState = None
         if robot.is_picked_up:
             currentState = 3
         else:
@@ -346,12 +326,14 @@ class QLearnLiftOrthogonal(QLearnSuperClass):
         asyncio.set_event_loop(loop)
         loop.run_forever()
 
-    def makeThread(self):
+    def makeProcess(self):
         newLoop = asyncio.new_event_loop()
-        t = Thread(target=self.startLoop, args=(newLoop,), daemon=True)
-        t.start()
+        p = Process(target=self.startLoop,args=(newLoop,))
+        p.daemon = True
+        p.start()
         newLoop.call_soon_threadsafe(self.voice.voiceComms)
-        return t
+        return p
+
 
     async def currentStateEvaluation(self,robot:cozmo.robot.Robot):
         currentState = await self.findCurrentState(robot)
@@ -374,25 +356,15 @@ class QLearnLiftOrthogonal(QLearnSuperClass):
             await robot.say_text("Sorry, I didnt find your face, please try putting it in my vision for best results").wait_for_completed()
         time.sleep(2)
 
-    def threadId(self):
-        print(threading._active.items())
-        if hasattr(self, 'name'):
-            return self.name
-        for name, thread in threading._active.items():
-            if thread is self:
-                return name
-
-    def raiseException(self):
-        self.threadId()
-        threading._shutdown()
-
     async def trainCozmo(self, robot: cozmo.robot.Robot):
-        self.makeThread()
+        process = self.makeProcess()
         await robot.say_text("I'm learning how to act when i'm lifted").wait_for_completed()
         for i in range (1):
             await super().speechCheck(robot)
             await self.currentStateEvaluation(robot)
-        self.raiseException()
+        process.terminate()
+        print(process)
+
 
     async def nextActionMax(self,currentState,robot:cozmo.robot.Robot):
         self.maxAction = np.where(self.Q[currentState][:] == np.max(self.Q[currentState][:]))
@@ -429,20 +401,21 @@ class QLearnTurnOrthogonal(QLearnSuperClass):
         self.voice.sleepTime = 12
         self.totalScore = 0
         self.rate = 0.3
-        self.name = "voice"
 
     def startLoop(self, loop):
         asyncio.set_event_loop(loop)
         loop.run_forever()
 
-    def makeThread(self):
+    def makeProcess(self):
         newLoop = asyncio.new_event_loop()
-        t = Thread(target=self.startLoop, args=(newLoop,), daemon=True)
-        t.start()
+        p = Process(target=self.startLoop,args=(newLoop,))
+        p.daemon = True
+        p.start()
         newLoop.call_soon_threadsafe(self.voice.voiceComms)
-        return t
+        return p
 
     async def findCurrentState(self,robot:cozmo.robot.Robot):
+        currentState = None
         angle = str(robot.pose_pitch.degrees)
         if 90 < float(angle) < 180:
             await robot.say_text("I am currently upside down").wait_for_completed()
@@ -476,27 +449,17 @@ class QLearnTurnOrthogonal(QLearnSuperClass):
     async def nextActionMax(self,currentState, robot:cozmo.robot.Robot):
         self.lift.nextActionMax(currentState, robot)
 
-    def threadId(self):
-        print(threading._active.items())
-        if hasattr(self, 'name'):
-            return self.name
-        for name, thread in threading._active.items():
-            if thread is self:
-                return name
-
-    def raiseException(self):
-        self.threadId()
-        threading._shutdown()
-
     async def trainCozmo(self,robot: cozmo.robot.Robot):
-        self.makeThread()
+        process = self.makeProcess()
         await robot.say_text("I'm learning how to act when i'm turned").wait_for_completed()
         for i in range (1):
             await super().speechCheck(robot)
             await self.lift.currentStateEvaluation(robot)
-        self.raiseException()
+        process.terminate()
+        print(process)
 
     async def testCozmo(self,robot:cozmo.robot.Robot):
+        #self.makeThread()
         await robot.say_text("I'm testing how to act when i'm turned").wait_for_completed()
         for i in range (1):
             await super().speechCheckTest(robot)
