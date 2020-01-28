@@ -79,18 +79,18 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         newLoop.call_soon_threadsafe(self.voice.voiceComms)
 
     async def voiceMove(self,robot:cozmo.robot.Robot,action):
-            await robot.say_text("I'm going to be acting based on your preferences now").wait_for_completed()
+            #await robot.say_text("I'm going to be acting based on your preferences now").wait_for_completed()
             if action == 0:
-                await robot.drive_straight(distance_mm(-150), speed_mmps(50)).wait_for_completed()
+                #await robot.drive_straight(distance_mm(-150), speed_mmps(50)).wait_for_completed()
             elif action == 2:
-                await robot.drive_straight(distance_mm(150), speed_mmps(50)).wait_for_completed()
+                #await robot.drive_straight(distance_mm(150), speed_mmps(50)).wait_for_completed()
             elif action == 1:
-                await robot.say_text("Are you sure you want me to move?").wait_for_completed()
+                #await robot.say_text("Are you sure you want me to move?").wait_for_completed()
             elif action == 3:
-                await robot.say_text("I'm not moving this time").wait_for_completed()
+                #await robot.say_text("I'm not moving this time").wait_for_completed()
 
     async def trainCozmo(self,robot:cozmo.robot.Robot):
-        await robot.say_text("I'm training my distance perception now").wait_for_completed()
+        #await robot.say_text("I'm training my distance perception now").wait_for_completed()
         self.makeThread()
         for i in range (5):
             if "Cosmo".lower() in self.voice.speech.lower() or "Cozmo" in self.voice.speech.lower():

@@ -41,19 +41,23 @@ class QLearnSuperClass(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def trainCozmo(self,robot:cozmo.robot.Robot):
+    def trainCozmo(self,*args,**kwargs):
         pass
 
     @abc.abstractmethod
-    def testCozmo(self,robot:cozmo.robot.Robot):
+    def testCozmo(self,*args,**kwargs):
         pass
 
-    @abc.abstractmethod
-    def threadId(self):
-        pass
+    def startLoop(self,loop):
+        asyncio.set_event_loop(loop)
+        loop.run_forever()
 
-    def raiseException(self):
-        pass
+    def makeThread(self):
+        newLoop = asyncio.new_event_loop()
+        t = Thread(target=self.startLoop, args=(newLoop,), daemon=True)
+        t.start()
+        newLoop.call_soon_threadsafe(self.voice.voiceComms)
+        return t
 
     async def voiceMove(self,robot:cozmo.robot.Robot,action):
             await robot.say_text("I'm going to be acting based on your preferences now").wait_for_completed()
@@ -66,47 +70,46 @@ class QLearnSuperClass(abc.ABC):
             elif action == 3:
                 await robot.say_text("I'm not moving this time").wait_for_completed()
 
-    async def speechCheck(self,robot:cozmo.robot.Robot):
-        if "Cosmo".lower() in self.voice.speech.lower() or "Cozmo" in self.voice.speech.lower():
-            print("This is the voice speech " + self.voice.speech)
-            if "Move".lower() in self.voice.speech.lower():
-                print("It is doing the voice methods now")
-                dist = await self.findCurrentState(robot)
-                randomAction = randint(0, 3)
-                await self.voiceMove(robot, randomAction)
-                maxValue = np.max(self.voice.moveRewards[dist][:])
-                # Updating the Q matrix for the voice + distance orthogonal
-                self.voice.QMove[dist][randomAction] = (1 - self.rate) * self.Q[dist][randomAction] + (
-                self.rate * round(self.voice.moveRewards[dist][randomAction] + self.gamma * maxValue, 2))
-                print("This is the move Q Matrix " + self.voice.QMove)
-            elif "Stop".lower() in self.voice.speech.lower():
-                randomAction = randint(0, 1)
-                maxValue = np.max(self.voice.stopRewards)
-                if randomAction == 1:
-                    await robot.say_text("Sorry, I am stopping now").wait_for_completed()
-                else:
-                    await robot.say_text("This simulates idle").wait_for_completed()
-                self.voice.QStop[randomAction] = (1 - self.rate) * self.voice.QStop[randomAction] + (
-                self.rate * round(self.voice.stopRewards[randomAction] + self.gamma * maxValue, 2))
-                print("This is the stop Q Matrix " + str(self.voice.QStop))
+    async def speechCheck(self,robot:cozmo.robot.Robot,voice):
+        print("This is the voice speech " + voice.speech)
+        if "Move".lower() in voice.speech.lower():
+            print("It is doing the voice methods now")
+            dist = await self.findCurrentState(robot)
+            randomAction = randint(0, 3)
+            await self.voiceMove(robot, randomAction)
+            maxValue = np.max(voice.moveRewards[dist][:])
+            # Updating the Q matrix for the voice + distance orthogonal
+            voice.QMove[dist][randomAction] = (1 - self.rate) * self.Q[dist][randomAction] + (
+            self.rate * round(voice.moveRewards[dist][randomAction] + self.gamma * maxValue, 2))
+            print("This is the move Q Matrix " + voice.QMove)
+        elif "Stop".lower() in voice.speech.lower():
+            await robot.say_text("Acting basd on your word stop").wait_for_completed()
+            randomAction = randint(0, 1)
+            maxValue = np.max(voice.stopRewards)
+            if randomAction == 1:
+                await robot.say_text("Sorry, I am stopping now").wait_for_completed()
+            else:
+                await robot.say_text("This simulates idle").wait_for_completed()
+                voice.QStop[randomAction] = (1 - self.rate) * voice.QStop[randomAction] + (
+            self.rate * round(voice.stopRewards[randomAction] + self.gamma * maxValue, 2))
+            print("This is the stop Q Matrix " + str(voice.QStop))
 
-    async def speechCheckTest(self,robot:cozmo.robot.Robot):
-        if "Cosmo".lower() in self.voice.speech.lower() or "Cozmo" in self.voice.speech.lower():
-            print("This is the voice speech " + self.voice.speech)
-            if "Move".lower() in self.voice.speech.lower():
-                dist = await self.findCurrentState(robot)
-                self.maxAction = np.where(self.voice.QMove[dist][:] == np.max(self.Q[dist][:]))
-                self.maxAction = np.amax(self.maxAction[0])
-                await self.voiceMove(robot, self.maxAction)
-                self.totalScore = self.totalScore + self.voice.QMove[dist][self.maxAction]
-            elif "Stop".lower() in self.voice.speech.lower():
-                maxStop = np.amax(self.voice.QStop)
-                if maxStop == 1:
-                    await robot.say_text("Sorry, I am stopping now").wait_for_completed()
-                else:
-                    await robot.say_text("I don't feel like obeying you").wait_for_completed()
-                self.totalScore = self.totalScore + self.voice.QStop[maxStop]
-                print(str(self.totalScore))
+    async def speechCheckTest(self,robot:cozmo.robot.Robot,voice):
+        print("This is the voice speech " + voice.speech)
+        if "Move".lower() in voice.speech.lower():
+            dist = await self.findCurrentState(robot)
+            self.maxAction = np.where(voice.QMove[dist][:] == np.max(self.Q[dist][:]))
+            self.maxAction = np.amax(self.maxAction[0])
+            await self.voiceMove(robot, self.maxAction)
+            self.totalScore = self.totalScore + voice.QMove[dist][self.maxAction]
+        elif "Stop".lower() in voice.speech.lower():
+            maxStop = np.amax(voice.QStop)
+            if maxStop == 1:
+                await robot.say_text("Sorry, I am stopping now").wait_for_completed()
+            else:
+                await robot.say_text("I don't feel like obeying you").wait_for_completed()
+            self.totalScore = self.totalScore + voice.QStop[maxStop]
+            print(str(self.totalScore))
 
 ###############################################################################################################################################
 
@@ -125,25 +128,13 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         self.gamma = 0.8
         self.initState = 0
         self.nextActIndex = 0
-        self.voice = voiceIntegration()
+        #self.voice = voiceIntegration()
         self.loop = asyncio.get_event_loop()
         self.maxAction = 0
         self.totalScore = 0
         self.rate = 0.3
-        self.voice.sleepTime = 30
-        self.name = "voice"
-
-    def startLoop(self,loop):
-        asyncio.set_event_loop(loop)
-        loop.run_forever()
-
-    def makeThread(self):
-        newLoop = asyncio.new_event_loop()
-        t = Thread(target=self.startLoop, args=(newLoop,), daemon=True)
-        t.name = "voice"
-        t.start()
-        newLoop.call_soon_threadsafe(self.voice.voiceComms)
-        return t
+        self.voice.sleepTime = 20
+        #self.name = "voice"
 
     async def nextAction(self,currentState,robot:cozmo.robot.Robot):
         nextActRand = randint(0, 3)
@@ -245,45 +236,44 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         await self.robotMovement(self.maxAction,facialExp,currentState,robot)
         return self.maxAction
 
-    def threadId(self):
-        print(threading._active.items())
-        if hasattr(self, 'name'):
-            return self.name
-        for name, thread in threading._active.items():
-            if thread is self:
-                return name
 
-    def raiseException(self):
-        self.threadId()
-        threading._shutdown()
-
-    async def trainCozmo(self,robot:cozmo.robot.Robot):
-        await robot.say_text("I'm training my distance perception now").wait_for_completed()
-        self.makeThread()
-        for i in range(1):
-            await super().speechCheck(robot)
-            currentState = await self.findCurrentState(robot)
-            if currentState != None:
-                await self.nextAction(currentState, robot)
-                super().update(currentState, nextActionIndex, self.gamma)
-                print("This is the basic Q Matrix " + str(self.Q))
-            else:
-                await robot.say_text("Sorry, I didnt find your face, please try putting it in my vision for best results").wait_for_completed()
-        self.raiseException()
-
-    async def testCozmo(self,robot:cozmo.robot.Robot):
-        await robot.say_text("I'm going to be tested now").wait_for_completed()
+    async def trainCozmo(self,robot:cozmo.robot.Robot,voice):
         #self.makeThread()
-        for i in range (1):
-            await super().speechCheckTest(robot)
-            currentState = await self.findCurrentState(robot)
-            if currentState != None:
-                await self.nextActionMax(currentState, robot)
-                self.totalScore = self.totalScore + self.Q[currentState][self.maxAction]
-                print("This is the basic Q Matrix " + str(self.Q))
-                print(str(self.totalScore))
+        #thread = super().makeThread()
+        # print(thread)
+        # print(self.voice)
+        await robot.say_text("I'm training my distance perception now").wait_for_completed()
+        for i in range(1):
+            if "Cosmo".lower() in voice.speech.lower() or "Cozmo".lower() in voice.speech.lower():
+                await super().speechCheck(robot,voice)
+                voice.speech = ""
             else:
-                await robot.say_text("Sorry, I didnt find your face, please try putting it in my vision for best results").wait_for_completed()
+                currentState = await self.findCurrentState(robot)
+                if currentState != None:
+                    await self.nextAction(currentState, robot)
+                    super().update(currentState, nextActionIndex, self.gamma)
+                    print("This is the basic Q Matrix " + str(self.Q))
+                else:
+                    await robot.say_text("Sorry, I didnt find your face, please try putting it in my vision for best results").wait_for_completed()
+        time.sleep(10)
+        #self.raiseException()
+
+    async def testCozmo(self,robot:cozmo.robot.Robot,voice):
+        #await robot.say_text("I'm going to be tested now").wait_for_completed()
+        print(self.voice.speech)
+        for i in range (1):
+            if "Cosmo".lower() in voice.speech.lower() or "Cozmo".lower() in voice.speech.lower():
+                await super().speechCheckTest(robot,voice)
+                voice.speech = ""
+            else:
+                currentState = await self.findCurrentState(robot)
+                if currentState != None:
+                    await self.nextActionMax(currentState, robot)
+                    self.totalScore = self.totalScore + self.Q[currentState][self.maxAction]
+                    print("This is the basic Q Matrix " + str(self.Q))
+                    print(str(self.totalScore))
+                else:
+                    await robot.say_text("Sorry, I didnt find your face, please try putting it in my vision for best results").wait_for_completed()
 
 
 #######################################################################################################################333
@@ -303,13 +293,13 @@ class QLearnLiftOrthogonal(QLearnSuperClass):
         self.gamma = 0
         self.initState = 0
         self.nextActIndex = 0
-        self.voice = voiceIntegration()
         self.maxAction = 0
         self.totalScore = 0
         self.rate = 0.3
-        self.voice.sleepTime = 12
+        self.voice = voiceIntegration()
         self.dist = QLearnDistOrthogonal()
-        self.name = "voice"
+        #self.voice = self.dist.voice
+        self.voice.sleepTime = 12
 
     async def findCurrentState(self,robot:cozmo.robot.Robot):
         if robot.is_picked_up:
@@ -374,25 +364,17 @@ class QLearnLiftOrthogonal(QLearnSuperClass):
             await robot.say_text("Sorry, I didnt find your face, please try putting it in my vision for best results").wait_for_completed()
         time.sleep(2)
 
-    def threadId(self):
-        print(threading._active.items())
-        if hasattr(self, 'name'):
-            return self.name
-        for name, thread in threading._active.items():
-            if thread is self:
-                return name
-
-    def raiseException(self):
-        self.threadId()
-        threading._shutdown()
-
-    async def trainCozmo(self, robot: cozmo.robot.Robot):
-        self.makeThread()
-        await robot.say_text("I'm learning how to act when i'm lifted").wait_for_completed()
+    async def trainCozmo(self, robot: cozmo.robot.Robot,voice):
+        #super().makeThread()
+        #await robot.say_text("I'm learning how to act when i'm lifted").wait_for_completed()
         for i in range (1):
-            await super().speechCheck(robot)
-            await self.currentStateEvaluation(robot)
-        self.raiseException()
+            if "Cosmo".lower() in voice.speech.lower() or "Cozmo".lower() in voice.speech.lower():
+                print("THIS IS TO CHECK THE CARRIED ON SPEECH")
+                print(voice.speech)
+                await super().speechCheck(robot,voice)
+            else:
+                await self.currentStateEvaluation(robot)
+        #self.raiseException()
 
     async def nextActionMax(self,currentState,robot:cozmo.robot.Robot):
         self.maxAction = np.where(self.Q[currentState][:] == np.max(self.Q[currentState][:]))
@@ -400,12 +382,15 @@ class QLearnLiftOrthogonal(QLearnSuperClass):
         await self.robotMovement(self.maxAction,robot)
         return self.maxAction
 
-    async def testCozmo(self,robot:cozmo.robot.Robot):
+    async def testCozmo(self,robot:cozmo.robot.Robot,voice):
         #self.makeThread()
-        await robot.say_text("I'm going to be tested now").wait_for_completed()
+        #await robot.say_text("I'm going to be tested now").wait_for_completed()
         for i in range (1):
-            await super().speechCheckTest(robot)
-            await self.currentStateEvaluationTest(robot)
+            if "Cosmo".lower() in voice.speech.lower() or "Cozmo".lower() in voice.speech.lower():
+                await super().speechCheckTest(robot,voice)
+                voice.speech = ""
+            else:
+                await self.currentStateEvaluationTest(robot)
 
 ####################################################################################################################
 
@@ -476,28 +461,16 @@ class QLearnTurnOrthogonal(QLearnSuperClass):
     async def nextActionMax(self,currentState, robot:cozmo.robot.Robot):
         self.lift.nextActionMax(currentState, robot)
 
-    def threadId(self):
-        print(threading._active.items())
-        if hasattr(self, 'name'):
-            return self.name
-        for name, thread in threading._active.items():
-            if thread is self:
-                return name
-
-    def raiseException(self):
-        self.threadId()
-        threading._shutdown()
-
     async def trainCozmo(self,robot: cozmo.robot.Robot):
-        self.makeThread()
-        await robot.say_text("I'm learning how to act when i'm turned").wait_for_completed()
-        for i in range (1):
+        #self.makeThread()
+        #await robot.say_text("I'm learning how to act when i'm turned").wait_for_completed()
+        for i in range (3):
             await super().speechCheck(robot)
             await self.lift.currentStateEvaluation(robot)
-        self.raiseException()
+        #self.raiseException()
 
     async def testCozmo(self,robot:cozmo.robot.Robot):
-        await robot.say_text("I'm testing how to act when i'm turned").wait_for_completed()
+        #await robot.say_text("I'm testing how to act when i'm turned").wait_for_completed()
         for i in range (1):
             await super().speechCheckTest(robot)
             await self.lift.currentStateEvaluationTest(robot)

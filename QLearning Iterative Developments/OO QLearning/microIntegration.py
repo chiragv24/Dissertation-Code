@@ -16,9 +16,10 @@ class voiceIntegration():
         self.stopRewards =[2,-2]
         self.QStop = [0,0]
         self.sleepTime = 0
+        self.running = True
 
    def voiceComms(self):
-        while True:
+        while self.running:
             r = sr.Recognizer()
             mic = sr.Microphone()
             with mic as source:
@@ -31,11 +32,11 @@ class voiceIntegration():
                     self.clearSpeech = True
                     print(self.speech)
                     if "Move".lower() in self.speech.lower() or "Stop".lower() in self.speech.lower():
-                        time.sleep(self.sleepTime)
-                        self.speech = ""
+                        time.sleep(20)
+                        #self.speech = ""
                 except sr.UnknownValueError:
                     self.clearSpeech = False
-                    print("Not understood, try again please")
+                    print("Not understood error value, try again please")
                 except sr.RequestError:
                     self.clearSpeech = False
-                    print("Not understood, try again please")
+                    print("REQ Not understood, try again please")
