@@ -8,7 +8,7 @@ from CleanerNewOrthogonals import QLearnLiftOrthogonal
 from CleanerNewOrthogonals import QLearnTurnOrthogonal
 from threading import Thread
 import threading
-from microIntegration import voiceIntegration
+from microIntegration import voiceIntegrationBack
 
 import cozmo
 import asyncio
@@ -20,7 +20,7 @@ class main:
     def __init__(self):
         self.agent1 = QLearnDistOrthogonal()
         self.agent2 = QLearnLiftOrthogonal()
-        self.voice = voiceIntegration()
+        self.voice = voiceIntegrationBack()
         self.agent3 = QLearnTurnOrthogonal()
 
     def cozmoDist(self):
@@ -55,7 +55,6 @@ class main:
     async def runLoop(self,robot: cozmo.robot.Robot):
         angle = str(robot.pose_pitch.degrees)
         await robot.say_text("I'm going to test myself now").wait_for_completed()
-        #self.makeProcess()
         while True:
             if robot.is_picked_up:
                 await self.agent2.testCozmo(robot,self.voice)
@@ -71,7 +70,7 @@ runner.makeThread()
 # #Training sessions
 runner.cozmoDist()
 runner.cozmoLift()
-#runner.cozmoTurn()
+runner.cozmoTurn()
 loop = asyncio.get_event_loop()
 loop.call_soon_threadsafe(cozmo.run_program(runner.runLoop))
 

@@ -5,7 +5,7 @@ import sys
 import asyncio
 import time
 
-class voiceIntegration():
+class voiceIntegrationBack():
 
    def __init__(self):
         self.speech = ""

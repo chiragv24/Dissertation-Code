@@ -8,7 +8,7 @@ import abc
 import threading
 from threading import Thread
 import ctypes
-from microIntegration import voiceIntegration
+from microIntegration import voiceIntegrationBack
 
 class QLearnSuperClass(abc.ABC):
 
@@ -22,7 +22,7 @@ class QLearnSuperClass(abc.ABC):
         self.states = []
         self.rewards = []
         self.rate = 0.3
-        self.voice = voiceIntegration()
+        self.voice = voiceIntegrationBack()
 
     @abc.abstractmethod
     def robotMovement(self,*args,**kwargs):
@@ -296,7 +296,7 @@ class QLearnLiftOrthogonal(QLearnSuperClass):
         self.maxAction = 0
         self.totalScore = 0
         self.rate = 0.3
-        self.voice = voiceIntegration()
+        self.voice = voiceIntegrationBack()
         self.dist = QLearnDistOrthogonal()
         #self.voice = self.dist.voice
         self.voice.sleepTime = 12
@@ -400,14 +400,14 @@ class QLearnTurnOrthogonal(QLearnSuperClass):
 
     def __init__(self):
         super(QLearnTurnOrthogonal, self).__init__()
-        self.actions = [0, 1, 2]
+        self.actions = [0, 1, 2, 3]
         self.rewards = [[-0.5, 1, -2, -2], [-0.5, 1, 5, 2],[-0.5, 1, -2, -3], [1.5, -2, -1, 1]]
-        self.Q = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+        self.Q = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
         self.states = [0, 1, 2, 3]
         self.gamma = 0
         self.initState = 0
         self.nextActIndex = 0
-        self.voice = voiceIntegration()
+        self.voice = voiceIntegrationBack()
         self.dist = QLearnDistOrthogonal()
         self.lift = QLearnLiftOrthogonal()
         self.maxAction = 0
@@ -415,17 +415,6 @@ class QLearnTurnOrthogonal(QLearnSuperClass):
         self.totalScore = 0
         self.rate = 0.3
         self.name = "voice"
-
-    def startLoop(self, loop):
-        asyncio.set_event_loop(loop)
-        loop.run_forever()
-
-    def makeThread(self):
-        newLoop = asyncio.new_event_loop()
-        t = Thread(target=self.startLoop, args=(newLoop,), daemon=True)
-        t.start()
-        newLoop.call_soon_threadsafe(self.voice.voiceComms)
-        return t
 
     async def findCurrentState(self,robot:cozmo.robot.Robot):
         angle = str(robot.pose_pitch.degrees)
@@ -442,7 +431,6 @@ class QLearnTurnOrthogonal(QLearnSuperClass):
                 currentState = 2
         return currentState
 
-
     async def robotMovement(self,actionNum,robot:cozmo.robot.Robot):
         if(actionNum==1):
             await robot.say_text("Why are you turning me around you idiot").wait_for_completed()
@@ -456,23 +444,29 @@ class QLearnTurnOrthogonal(QLearnSuperClass):
             await robot.say_text("Hello, how are you doing today").wait_for_completed()
 
     async def nextAction(self,robot:cozmo.robot.Robot):
-        self.lift.nextAction(robot)
+        nextActRand = randint(0,len(self.actions)-1)
+        await self.robotMovement(nextActRand,robot)
+        global nextActionIndex
+        nextActionIndex = nextActRand
 
     async def nextActionMax(self,currentState, robot:cozmo.robot.Robot):
-        self.lift.nextActionMax(currentState, robot)
+        self.maxAction = np.where(self.Q[currentState][:] == np.max(self.Q[currentState][:]))
+        self.maxAction = np.amax(self.maxAction[0])
+        await self.robotMovement(self.maxAction,robot)
+        return self.maxAction
 
-    async def trainCozmo(self,robot: cozmo.robot.Robot):
+    async def trainCozmo(self,robot:cozmo.robot.Robot,voice):
         #self.makeThread()
         #await robot.say_text("I'm learning how to act when i'm turned").wait_for_completed()
         for i in range (3):
-            await super().speechCheck(robot)
+            await super().speechCheck(robot,voice)
             await self.lift.currentStateEvaluation(robot)
         #self.raiseException()
 
-    async def testCozmo(self,robot:cozmo.robot.Robot):
+    async def testCozmo(self,robot:cozmo.robot.Robot,voice):
         #await robot.say_text("I'm testing how to act when i'm turned").wait_for_completed()
         for i in range (1):
-            await super().speechCheckTest(robot)
+            await super().speechCheckTest(robot,voice)
             await self.lift.currentStateEvaluationTest(robot)
 
 
