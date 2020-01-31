@@ -50,21 +50,21 @@ class main:
     async def runLoop(self,robot:cozmo.robot.Robot):
         angle = str(robot.pose_pitch.degrees)
         while True:
-            await robot.say_text("I'm going to give you 5 seconds to change").wait_for_completed()
-            print("Time to sleep")
-            time.sleep(5)
-            print("Woken up from sleep")
-            if robot.is_picked_up:
-                await self.agent2.testCozmo(robot,self.backVoice)
-            elif 90 <= float(angle) <= 180:
-                await self.agent3.testCozmo(robot,self.backVoice)
-            else:
-                await self.agent1.testCozmo(robot,self.backVoice)
+            # await robot.say_text("I'm going to give you 5 seconds to change").wait_for_completed()
+            # print("Time to sleep")
+            # time.sleep(5)
+            # print("Woken up from sleep")
+            # if robot.is_picked_up:
+            #     await self.agent2.testCozmo(robot,self.backVoice)
+            # elif 90 <= float(angle) <= 180:
+            #     await self.agent3.testCozmo(robot,self.backVoice)
+            # else:
+            await self.agent1.testCozmo(robot,self.backVoice)
 
 m = main()
 m.makeThread()
-# m.runTrain3()
-# m.runTrain1()
-# m.runTrain2()
+m.runTrain1()
+#m.runTrain1()
+#m.runTrain2()
 loop = asyncio.get_event_loop()
 loop.call_soon_threadsafe(cozmo.run_program(m.runLoop))
