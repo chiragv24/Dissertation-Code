@@ -206,7 +206,7 @@ class QLearnDistOrthogonal(QLearnSuperClass):
 
     async def moveRobotHead(self,robot: cozmo.robot.Robot):
         robot.move_lift(-3)
-        await robot.set_head_angle(degrees(30)).wait_for_completed()
+        await robot.set_head_angle(degrees(25)).wait_for_completed()
         # time.sleep(5)
         # await robot.set_head_angle(cozmo.robot.MAX_HEAD_ANGLE).wait_for_completed()
         # time.sleep(5)
@@ -218,11 +218,11 @@ class QLearnDistOrthogonal(QLearnSuperClass):
             if face and face.is_visible:
                 for face in robot.world.visible_faces:
                     dist = abs(face.pose.position.x - robot.pose.position.x)
-                    if dist < float(900) and dist > float(250):
+                    if dist < float(850) and dist > float(250):
                         await robot.say_text("I'm currently in the optimal state").wait_for_completed()
                         print("This is the distance from the face " + str(dist))
                         currentState = 1
-                    elif dist > float(900):
+                    elif dist > float(850):
                         await robot.say_text("I´m currently in the far state").wait_for_completed()
                         print("This is the distance from the face " + str(dist))
                         currentState = 0
@@ -236,10 +236,23 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                     face = await robot.world.wait_for_observed_face(timeout=10)
                 except asyncio.TimeoutError:
                     await robot.say_text("Sorry, it will have to be next time").wait_for_completed()
-                    return None
+                    cubeDist = await self.findTheCube(robot)
+                    if cubeDist!=None:
+                        currentState = None
+                        if cubeDist < 250:
+                            currentState = 2
+                            await robot.say_text("I'm currently in the close state").wait_for_completed()
+                        elif cubeDist > 900:
+                            currentState = 0
+                            await robot.say_text("I'm currently in the far state").wait_for_completed()
+                        else:
+                            currentState = 1
+                            await robot.say_text("I'm currently in the optimal state").wait_for_completed()
+                        return currentState
+                    else:
+                        return None
 
     async def findCurrentState(self,robot:cozmo.robot.Robot):
-        face = None
         await self.moveRobotHead(robot)
         face = await self.searchForFace(robot)
         return face
@@ -257,6 +270,20 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         file.write(str(currentState) + " " + str(action) + " " + str(reward))
         file.write("\n")
         file.close()
+
+    async def findTheCube(self,robot:cozmo.robot.Robot):
+        await robot.set_head_angle(degrees(-15)).wait_for_completed()
+        await robot.say_text("I'm trying to  find the cube now").wait_for_completed()
+        try:
+            cube = await robot.world.wait_for_observed_light_cube(timeout=30)
+            x = cube.pose.position.x
+            dist = abs(robot.pose.position.x - x)
+        except asyncio.TimeoutError:
+            await robot.say_text("Sorry I didn't find the cube either").wait_for_completed()
+            dist = None
+        print(dist)
+        return dist
+
 
     async def trainCozmo(self,robot:cozmo.robot.Robot,voice,backVoice):
         open('trainData.txt',mode='w')
@@ -292,7 +319,7 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                         reward = self.Q[currentState][nextActionIndex] - bef
                         await robot.say_text("Not Good").wait_for_completed()
                     else:
-                        await robot.say_text("Sorry I couldn't understand you").wait_for_completed()
+                        await robot.say_text("Sorry I couldn't understand y ou").wait_for_completed()
                     print(str(self.Q))
                     self.writeToFile(currentState,nextActionIndex,reward)
                     print("THIS IS THE LOGGED INFO " + str(currentState) + " " + str(nextActionIndex) + " " + str(self.Q[currentState][nextActionIndex]))

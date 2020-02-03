@@ -1,0 +1,18 @@
+Cozmo Bugs:
+
+Voice does it twice - timing problem 
+If the robot too close to the cube then it doesnt detect it
+If the robot in optimal but cube is less than 350 it will tip it
+if the facial expression is unknown then don't say it
+don't look for the expression if the robot is too close
+try and add lifting and the rotation - ask matthias
+recursion doesn't work, but the code if rough but working now
+
+
+ideas: when doing the movement, pass in the distance from the cube as a param
+and move accordingly
+
+If the robot is too close to the cube, then move backward / detect if the lift is hitting the cube
+
+maybe make a UI so user can see what is being recognized
+

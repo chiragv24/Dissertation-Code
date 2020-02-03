@@ -32,7 +32,7 @@ class voiceIntegrationBack():
                     self.clearSpeech = True
                     print(self.speech)
                     if "Move".lower() in self.speech.lower() or "Stop".lower() in self.speech.lower():
-                        time.sleep(20)
+                        time.sleep(30)
                 except sr.UnknownValueError:
                     self.clearSpeech = False
                     print("Not understood error value, try again please")
