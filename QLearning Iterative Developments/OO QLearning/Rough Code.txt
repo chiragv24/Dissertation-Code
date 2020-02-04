@@ -1,10 +1,11 @@
 import cozmo
+
+WITHOUT THE GLOBAL CUBE AND FACE DISTS
+
 import asyncio
 from cozmo.util import distance_mm, speed_mmps, degrees
 from random import randint
-import re
 import numpy as np
-from tkinter import *
 import time
 import abc
 import threading
@@ -12,6 +13,7 @@ import csv
 from threading import Thread
 import ctypes
 from microIntegrationInteractive import voiceIntegration
+
 
 class QLearnSuperClass(abc.ABC):
     nextActionIndex = 0
@@ -85,8 +87,7 @@ class QLearnSuperClass(abc.ABC):
             maxValue = np.max(voice.QMove[dist][:])
             # Updating the Q matrix for the voice + distance orthogonal
             await robot.say_text("What did you think?").wait_for_completed()
-            while voice.clearSpeech == False:
-                await voice.voiceComms()
+            await voice.voiceComms()
             if "good" in voice.speech.lower():
                 await robot.say_text("Perfect").wait_for_completed()
                 voice.QMove[dist][randomAction] = round(
@@ -161,9 +162,6 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         self.maxAction = 0
         self.totalScore = 0
         self.rate = 0.3
-        self.cubeDist = 0
-        self.cubeMoved = False
-        self.faceDist = 0
 
     async def nextAction(self, currentState, robot: cozmo.robot.Robot):
         nextActRand = randint(0, 3)
@@ -175,22 +173,10 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         global nextActionIndex
         nextActionIndex = nextActRand
 
-
     async def robotMovement(self, actionNum, facialExp, currentState, robot: cozmo.robot.Robot):
         print("This is the currentState and the action " + str(actionNum) + " " + str(currentState))
-        distToMove = 0
         if(currentState == 2 and actionNum == 1):
-            if self.cubeDist == None:
-                #ASK MATTHIAS IF WORTH MAKING THIS ANOTHER MATRIX AND DECIDE IF TO TIP AND NOT TO TIP AND THEN SOCIAL DOESNT TIP
-                robot.say_text("I'm too close to the cube, I will tip it").wait_for_completed()
-            else:
-            # Cube measured from middle so the dist to the beginning is 21.5cm less
-                distFromFrontOfCube = self.cubeDist - 43
-                await robot.say_text("I moving slightly forward").wait_for_completed()
-                distToMove = distFromFrontOfCube - 35
-                if distToMove < 10:
-                    distToMove = 10
-            await robot.drive_straight(distance_mm(distToMove),speed_mmps(50)).wait_for_completed()
+            await robot.say_text("I should move forward now but I don't want to knock the cube").wait_for_completed()
         elif (currentState == 0 and facialExp == "happy"):
             await robot.say_text("I will stay here until you tell me to move").wait_for_completed()
             return "staying far"
@@ -203,13 +189,10 @@ class QLearnDistOrthogonal(QLearnSuperClass):
             await robot.drive_straight(distance_mm(-350), speed_mmps(75)).wait_for_completed()
             return "moving backwards"
         elif (actionNum == 1):
-            if self.cubeDist == None or self.cubeDist > 350:
-                distToMove = 350
-            else:
-                distToMove = self.cubeDist - 35
+            cubeMove = 
             print("Moved forward")
             await robot.say_text("I'm moving forward now").wait_for_completed()
-            await robot.drive_straight(distance_mm(distToMove), speed_mmps(75)).wait_for_completed()
+            await robot.drive_straight(distance_mm(350), speed_mmps(75)).wait_for_completed()
             return "moving forwards"
         elif (actionNum == 2):
             print("Greeted")
@@ -225,9 +208,7 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         while True:
             if face and face.is_visible:
                 robot.enable_facial_expression_estimation(True)
-                expEst = face.expression
-                print("This is the expression " + expEst)
-                if expEst.lower() == "Unknown".lower():
+                if face.expression == "Unknown":
                     print("No recognition")
                 else:
                     await robot.say_text("Facial expression analysed, as " + str(face.expression)).wait_for_completed()
@@ -267,47 +248,39 @@ class QLearnDistOrthogonal(QLearnSuperClass):
             except:
                 print("This is not working")
 
-    def handleCubeMove(self,evt,**kw):
-        print("Object %s stopped moving: duration=%.1f seconds" % (evt.obj.object_id, evt.move_duration))
-        self.cubeMoved = True
-
-    def detectIfFarOrClose(self,robot:cozmo.robot.Robot):
-        robot.add_event_handler(cozmo.objects.EvtObjectMovingStopped,self.handleCubeMove)
-        self.cubeMoved = True
-
     async def searchForFace(self, robot: cozmo.robot.Robot):
-        self.cubeDist = await self.findTheCube(robot)
-        self.cubeMoved = False
+        global cubeDist
+        cubeDist = self.findTheCube(robot)
         face = None
         await robot.set_head_angle(degrees(30)).wait_for_completed()
         while True:
             if face and face.is_visible:
                 for face in robot.world.visible_faces:
-                    self.faceDist = abs(face.pose.position.x - robot.pose.position.x)
-                    if self.faceDist < float(850) and self.faceDist > float(250):
+                    global Dist
+                    faceDist = abs(face.pose.position.x - robot.pose.position.x)
+                    if faceDist < float(850) and faceDist > float(250):
                         await robot.say_text("I'm currently in the optimal state").wait_for_completed()
-                        print("This is the distance from the face " + str(self.faceDist))
+                        print("This is the distance from the face " + str(dist))
                         currentState = 1
-                    elif self.faceDist > float(850):
+                    elif faceDist > float(850):
                         await robot.say_text("I´m currently in the far state").wait_for_completed()
-                        print("This is the distance from the face " + str(self.faceDist))
+                        print("This is the distance from the face " + str(dist))
                         currentState = 0
                     else:
                         await robot.say_text("I'm currently in the close state").wait_for_completed()
-                        print("This is the distance from the face " + str(self.faceDist))
+                        print("This is the distance from the face " + str(dist))
                         currentState = 2
                     return currentState
             else:
                 try:
                     face = await robot.world.wait_for_observed_face(timeout=10)
                 except asyncio.TimeoutError:
-                    await robot.say_text("Sorry I didn't find your face, using the cube position insted").wait_for_completed()
-                    if self.cubeDist != None:
-                        if self.cubeDist < 250:
+                    if cubeDist != None:
+                        if cubeDist < 250:
                             currentState = 2
                             await robot.say_text("I'm currently in the close state").wait_for_completed()
                             return currentState
-                        elif self.cubeDist > 850:
+                        elif cubeDist > 850:
                             currentState = 0
                             await robot.say_text("I'm currently in the far state").wait_for_completed()
                             return currentState
@@ -316,26 +289,10 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                             await robot.say_text("I'm currently in the optimal state").wait_for_completed()
                             return currentState
                     else:
-                        try:
-                            #poseBef = cozmo.objects.LightCube
-                            #print("POSE BEF " + str(poseBef))
-                            await robot.drive_straight(distance_mm(10),speed_mmps(5)).wait_for_completed()
-                            self.detectIfFarOrClose(robot)
-                            #await self.detectIfFarOrClose(robot)
-                            # a = cozmo.objects.LightCube.time_since_last_seen
-                            # m = cozmo.objects.LightCube.last_moved_time
-                            #x = cozmo.objects.LightCube.pose
-                            #print("POSE AFT " + str(x))
-                            print("THIS IS IF THE CUBE HAS BEEN MOVED AT ANY POINT " + str(self.cubeMoved))
-                            if self.cubeMoved == True:
-                                currentState = 2
-                                return currentState
-                            else:
-                                await robot.drive_straight(distance_mm(200),speed_mmps(75)).wait_for_completed()
-                                currentState = await self.secondTest(robot)
-                                return currentState
-                        except asyncio.TimeoutError:
-                            print("Time out")
+                        #DETERMINE IF TOO CLOSE OR TOO FAR
+                        await robot.drive_straight(distance_mm(150),speed_mmps(50)).wait_for_completed()
+                        await self.secondTest(robot)
+                        #await self.searchForFace(robot)
 
 
     async def findCurrentState(self, robot: cozmo.robot.Robot):
@@ -364,10 +321,6 @@ class QLearnDistOrthogonal(QLearnSuperClass):
     #     return action
 
     async def findTheCube(self, robot: cozmo.robot.Robot):
-        #CHECK ALL OF THIS TOMORROW
-        #print(str(robot.world.nav_memory_map.size))
-        #print(str(robot.world.nav_memory_map.size)) - robot.pose.position
-        #cozmo.objects.EvtObjectMovingStarted
         await robot.say_text("I'm trying to  find the cube now").wait_for_completed()
         await robot.set_head_angle(degrees(-15)).wait_for_completed()
         try:
@@ -375,16 +328,14 @@ class QLearnDistOrthogonal(QLearnSuperClass):
             x = cube.pose.position.x
             dist = abs(robot.pose.position.x - x)
         except asyncio.TimeoutError:
-            await robot.say_text("Sorry I didn't find the cube").wait_for_completed()
+            await robot.say_text("Sorry I didn't find the cube either").wait_for_completed()
             dist = None
         print(dist)
         return dist
 
     async def trainCozmo(self, robot: cozmo.robot.Robot, voice, backVoice):
-        #tkloop = True
         open('trainData.txt', mode='w')
         await robot.say_text("I'm training my distance perception now").wait_for_completed()
-        #self.spawnWindow(voice.speech,tkloop)
         for i in range(100):
             print("THIS IS THE BACK VOICE " + backVoice.speech)
             if "Move".lower() in backVoice.speech.lower() or "Stop".lower() in backVoice.speech.lower():
@@ -399,40 +350,34 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                 await self.nextAction(currentState, robot)
                 await robot.say_text("What did you think?").wait_for_completed()
                 try:
-                    while voice.clearSpeech == False:
-                        await asyncio.wait_for(voice.voiceComms(), 10)
-                    voice.clearSpeech = False
+                    await asyncio.wait_for(voice.voiceComms(), 10)
                     reward = 0
                     print("This is the code words " + voice.speech)
-                    compMed = re.search(r"\bmed",voice.speech)
-                    compBad= re.search(r"ad\b",voice.speech)
-                    compGood = re.search(r"ood\b",voice.speech)
-                    if compGood:
+                    if "good".lower() in voice.speech:
                         bef = self.Q[currentState][nextActionIndex]
                         self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][
                             nextActionIndex] + (self.rate * round(3 + self.gamma * maxValue))
                         reward = self.Q[currentState][nextActionIndex] - bef
                         await robot.say_text("Perfect").wait_for_completed()
-                        await robot.play_anim("anim_memorymatch_successhand_cozmo_01").wait_for_completed()
-                    if compMed:
+                    elif "medium".lower() in voice.speech:
                         bef = self.Q[currentState][nextActionIndex]
                         self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][
                             nextActionIndex] + (self.rate * round(self.gamma * maxValue))
                         reward = self.Q[currentState][nextActionIndex] - bef
                         await robot.say_text("Noted").wait_for_completed()
-                        await robot.play_anim("anim_memorymatch_reacttopattern_standard_01").wait_for_completed()
-                    elif compBad:
+                    elif "bad".lower() in voice.speech:
                         bef = self.Q[currentState][nextActionIndex]
                         self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][
                             nextActionIndex] + (self.rate * round(-3 + self.gamma * maxValue))
                         reward = self.Q[currentState][nextActionIndex] - bef
                         await robot.say_text("Not Good").wait_for_completed()
-                        await robot.play_anim("anim_memorymatch_failhand_01").wait_for_completed()
+                    else:
+                        await robot.say_text("Sorry I couldn't understand you").wait_for_completed()
                     print(str(self.Q))
                     self.writeToFile(currentState, nextActionIndex, reward)
                     print("THIS IS THE LOGGED INFO " + str(currentState) + " " + str(nextActionIndex) + " " + str(self.Q[currentState][nextActionIndex]))
                 except asyncio.TimeoutError:
-                    await robot.say_text("Sorry I did not hear anything").wait_for_completed()
+                    await robot.say_text("Sorry I didn´t hear anything").wait_for_completed()
             else:
                 await robot.say_text("Sorry I couldn't find your face").wait_for_completed()
 

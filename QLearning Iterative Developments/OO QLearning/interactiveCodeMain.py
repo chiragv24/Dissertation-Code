@@ -1,5 +1,6 @@
 from interactiveCodeDist import QLearnDistOrthogonal
 from interactiveCode import QLearnLiftOrthogonal
+#from UIThread import UI
 from interactiveCode import QLearnTurnOrthogonal
 from threading import Thread
 import threading
@@ -24,9 +25,13 @@ class main:
 
     def makeThread(self):
         newLoop = asyncio.new_event_loop()
+        #newLoopUI = asyncio.new_event_loop()
         t = Thread(target=self.startLoop,args=(newLoop,),daemon=True)
+        #t1 = Thread(target=self.startLoop,args=(newLoopUI,))
         t.start()
+        #t1.start()
         newLoop.call_soon_threadsafe(self.backVoice.voiceComms)
+        #newLoopUI.call_soon_threadsafe(self.visual.spawnWindow)
         return t
 
     def runTrain1(self):
