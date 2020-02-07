@@ -7,10 +7,10 @@ import numpy as np
 from tkinter import *
 import time
 import abc
+from matplotlib import pyplot
+import matplotlib
 import threading
-import csv
 from threading import Thread
-import ctypes
 from microIntegrationInteractive import voiceIntegration
 
 class QLearnSuperClass(abc.ABC):
@@ -37,8 +37,7 @@ class QLearnSuperClass(abc.ABC):
     def update(self, currentState, action, gamma):
         maxValue = np.max(self.Q[currentState][:])
         rating = 0
-        self.Q[currentState][action] = (1 - self.rate) * self.Q[currentState][action] + (
-        self.rate * round(self.rewards[rating] + gamma * maxValue, 2))
+        self.Q[currentState][action] = round((1 - self.rate) * self.Q[currentState][action] + (self.rate * round(self.rewards[rating] + gamma * maxValue, 2),2)
 
     @abc.abstractmethod
     def findCurrentState(self, robot: cozmo.robot.Robot):
@@ -89,16 +88,13 @@ class QLearnSuperClass(abc.ABC):
                 await voice.voiceComms()
             if "good" in voice.speech.lower():
                 await robot.say_text("Perfect").wait_for_completed()
-                voice.QMove[dist][randomAction] = round(
-                    (1 - self.rate) * voice.QMove[dist][randomAction] + (self.rate * 3 + self.gamma * maxValue), 2)
+                voice.QMove[dist][randomAction] = round((1 - self.rate) * voice.QMove[dist][randomAction] + (self.rate * 3 + self.gamma * maxValue), 2)
             elif "medium" in voice.speech.lower():
-                voice.QMove[dist][randomAction] = round(
-                    (1 - self.rate) * voice.QMove[dist][randomAction] + (self.rate + self.gamma * maxValue), 2)
+                voice.QMove[dist][randomAction] = round((1 - self.rate) * voice.QMove[dist][randomAction] + (self.rate + self.gamma * maxValue), 2)
                 await robot.say_text("Noted").wait_for_completed()
             elif "bad" in voice.speech.lower():
                 await robot.say_text("Has to be improved").wait_for_completed()
-                voice.QMove[dist][randomAction] = round(
-                    (1 - self.rate) * voice.QMove[dist][randomAction] + (self.rate * -3 + self.gamma * maxValue), 2)
+                voice.QMove[dist][randomAction] = round((1 - self.rate) * voice.QMove[dist][randomAction] + (self.rate * -3 + self.gamma * maxValue), 2)
             print("This is the move Q Matrix " + str(voice.QMove))
         elif "Stop".lower() in backVoice.speech.lower():
             await robot.say_text("Acting based on your word stop").wait_for_completed()
@@ -112,16 +108,13 @@ class QLearnSuperClass(abc.ABC):
             await voice.voiceComms()
             if "good" in voice.speech.lower():
                 await robot.say_text("Perfect").wait_for_completed()
-                voice.QStop[randomAction] = round(
-                    (1 - self.rate) * voice.QStop[randomAction] + (self.rate * 3 + self.gamma * maxValue), 2)
+                voice.QStop[randomAction] = round((1 - self.rate) * voice.QStop[randomAction] + (self.rate * 3 + self.gamma * maxValue), 2)
             elif "medium" in voice.speech.lower():
                 await robot.say_text("Noted").wait_for_completed()
-                voice.QStop[randomAction] = round(
-                    (1 - self.rate) * voice.QStop[randomAction] + (self.rate + self.gamma * maxValue), 2)
+                voice.QStop[randomAction] = round((1 - self.rate) * voice.QStop[randomAction] + (self.rate + self.gamma * maxValue), 2)
             elif "bad" in voice.speech.lower():
                 await robot.say_text("Has to be improved").wait_for_completed()
-                voice.QStop[randomAction] = round(
-                    (1 - self.rate) * voice.QStop[randomAction] + (self.rate * -3 + self.gamma * maxValue), 2)
+                voice.QStop[randomAction] = round((1 - self.rate) * voice.QStop[randomAction] + (self.rate * -3 + self.gamma * maxValue), 2)
             print("This is the stop Q Matrix " + str(voice.QStop))
 
     async def speechCheckTest(self, robot: cozmo.robot.Robot, voice):
@@ -182,7 +175,7 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         if(currentState == 2 and actionNum == 1):
             if self.cubeDist == None:
                 #ASK MATTHIAS IF WORTH MAKING THIS ANOTHER MATRIX AND DECIDE IF TO TIP AND NOT TO TIP AND THEN SOCIAL DOESNT TIP
-                robot.say_text("I'm too close to the cube, I will tip it").wait_for_completed()
+                await robot.say_text("I'm too close to the cube, I will tip it").wait_for_completed()
             else:
             # Cube measured from middle so the dist to the beginning is 21.5cm less
                 distFromFrontOfCube = self.cubeDist - 43
@@ -268,18 +261,22 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                 print("This is not working")
 
     def handleCubeMove(self,evt,**kw):
+        #print("Object %s started moving: acceleration=%s" %(evt.obj.object_id, evt.acceleration))
         print("Object %s stopped moving: duration=%.1f seconds" % (evt.obj.object_id, evt.move_duration))
         self.cubeMoved = True
 
     def detectIfFarOrClose(self,robot:cozmo.robot.Robot):
         robot.add_event_handler(cozmo.objects.EvtObjectMovingStopped,self.handleCubeMove)
-        self.cubeMoved = True
+        #robot.add_event_handler(cozmo.objects.EvtObjectMovingStarted,self.handleCubeMove)
+
+        #self.cubeMoved = True
 
     async def searchForFace(self, robot: cozmo.robot.Robot):
         self.cubeDist = await self.findTheCube(robot)
         self.cubeMoved = False
         face = None
         await robot.set_head_angle(degrees(30)).wait_for_completed()
+        #while not face == None:
         while True:
             if face and face.is_visible:
                 for face in robot.world.visible_faces:
@@ -301,7 +298,7 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                 try:
                     face = await robot.world.wait_for_observed_face(timeout=10)
                 except asyncio.TimeoutError:
-                    await robot.say_text("Sorry I didn't find your face, using the cube position insted").wait_for_completed()
+                    await robot.say_text("Sorry I didn't find your face, using the cube position instead").wait_for_completed()
                     if self.cubeDist != None:
                         if self.cubeDist < 250:
                             currentState = 2
@@ -319,8 +316,8 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                         try:
                             #poseBef = cozmo.objects.LightCube
                             #print("POSE BEF " + str(poseBef))
-                            await robot.drive_straight(distance_mm(10),speed_mmps(5)).wait_for_completed()
                             self.detectIfFarOrClose(robot)
+                            await robot.drive_straight(distance_mm(100),speed_mmps(50)).wait_for_completed()
                             #await self.detectIfFarOrClose(robot)
                             # a = cozmo.objects.LightCube.time_since_last_seen
                             # m = cozmo.objects.LightCube.last_moved_time
@@ -381,7 +378,9 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         return dist
 
     async def trainCozmo(self, robot: cozmo.robot.Robot, voice, backVoice):
-        #tkloop = True
+        # pyplot.figure()
+        # pyplot.text(0.35, 0.5,"Close Me")
+        # pyplot.show()
         open('trainData.txt', mode='w')
         await robot.say_text("I'm training my distance perception now").wait_for_completed()
         #self.spawnWindow(voice.speech,tkloop)
