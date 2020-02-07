@@ -18,7 +18,7 @@ class QLearnSuperClass(abc.ABC):
 
     def __init__(self):
         self.initState = 0
-        self.gamma = 0.8
+        self.gamma = 0.5
         self.nextActIndex = 0
         self.Q = []
         self.states = []
@@ -37,7 +37,7 @@ class QLearnSuperClass(abc.ABC):
     def update(self, currentState, action, gamma):
         maxValue = np.max(self.Q[currentState][:])
         rating = 0
-        self.Q[currentState][action] = round((1 - self.rate) * self.Q[currentState][action] + (self.rate * round(self.rewards[rating] + gamma * maxValue, 2),2)
+        self.Q[currentState][action] = round((1 - self.rate) * self.Q[currentState][action] + (self.rate * round(self.rewards[rating] + gamma * maxValue, 2),2))
 
     @abc.abstractmethod
     def findCurrentState(self, robot: cozmo.robot.Robot):
@@ -146,14 +146,14 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         self.actions = [0, 1, 2, 3]
         self.Q = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
         self.states = [0, 1, 2]
-        self.gamma = 0.8
+        self.gamma = 0.5
         self.initState = 0
         self.nextActIndex = 0
         self.voice = voiceIntegration()
         self.loop = asyncio.get_event_loop()
         self.maxAction = 0
         self.totalScore = 0
-        self.rate = 0.3
+        self.rate = 0.05
         self.cubeDist = 0
         self.cubeMoved = False
         self.faceDist = 0
@@ -261,15 +261,11 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                 print("This is not working")
 
     def handleCubeMove(self,evt,**kw):
-        #print("Object %s started moving: acceleration=%s" %(evt.obj.object_id, evt.acceleration))
         print("Object %s stopped moving: duration=%.1f seconds" % (evt.obj.object_id, evt.move_duration))
         self.cubeMoved = True
 
     def detectIfFarOrClose(self,robot:cozmo.robot.Robot):
         robot.add_event_handler(cozmo.objects.EvtObjectMovingStopped,self.handleCubeMove)
-        #robot.add_event_handler(cozmo.objects.EvtObjectMovingStarted,self.handleCubeMove)
-
-        #self.cubeMoved = True
 
     async def searchForFace(self, robot: cozmo.robot.Robot):
         self.cubeDist = await self.findTheCube(robot)
@@ -314,15 +310,8 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                             return currentState
                     else:
                         try:
-                            #poseBef = cozmo.objects.LightCube
-                            #print("POSE BEF " + str(poseBef))
                             self.detectIfFarOrClose(robot)
                             await robot.drive_straight(distance_mm(100),speed_mmps(50)).wait_for_completed()
-                            #await self.detectIfFarOrClose(robot)
-                            # a = cozmo.objects.LightCube.time_since_last_seen
-                            # m = cozmo.objects.LightCube.last_moved_time
-                            #x = cozmo.objects.LightCube.pose
-                            #print("POSE AFT " + str(x))
                             print("THIS IS IF THE CUBE HAS BEEN MOVED AT ANY POINT " + str(self.cubeMoved))
                             if self.cubeMoved == True:
                                 currentState = 2
@@ -348,23 +337,19 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         await self.robotMovement(self.maxAction, facialExp, currentState, robot)
         return self.maxAction
 
-    def writeToFile(self, currentState, action, reward):
+    def writeToFileTest(self,epochNum):
+        file = open("testdata" + str(epochNum) + "rate" + str(self.rate)+".txt" , mode='a')
+        file.write(str(epochNum) + " " + str(self.rate) + " " + str(self.totalScore))
+        file.write("\n")
+        file.close()
+
+    def writeToFileTrain(self, currentState, action, reward):
         file = open('trainData.txt', mode='a')
         file.write(str(currentState) + " " + str(action) + " " + str(reward))
         file.write("\n")
         file.close()
 
-    # async def flip(self,robot:cozmo.robot.Robot):
-    #     cube = await robot.world.wait_for_observed_light_cube()
-    #     print("Cozmo found a cube, and will now attempt to pop a wheelie on it")
-    #     action = await robot.pop_a_wheelie(cube, num_retries=2,in_parallel=True).wait_for_completed()
-    #     return action
-
     async def findTheCube(self, robot: cozmo.robot.Robot):
-        #CHECK ALL OF THIS TOMORROW
-        #print(str(robot.world.nav_memory_map.size))
-        #print(str(robot.world.nav_memory_map.size)) - robot.pose.position
-        #cozmo.objects.EvtObjectMovingStarted
         await robot.say_text("I'm trying to  find the cube now").wait_for_completed()
         await robot.set_head_angle(degrees(-15)).wait_for_completed()
         try:
@@ -378,68 +363,65 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         return dist
 
     async def trainCozmo(self, robot: cozmo.robot.Robot, voice, backVoice):
-        # pyplot.figure()
-        # pyplot.text(0.35, 0.5,"Close Me")
-        # pyplot.show()
-        open('trainData.txt', mode='w')
-        await robot.say_text("I'm training my distance perception now").wait_for_completed()
-        #self.spawnWindow(voice.speech,tkloop)
-        for i in range(100):
-            print("THIS IS THE BACK VOICE " + backVoice.speech)
-            if "Move".lower() in backVoice.speech.lower() or "Stop".lower() in backVoice.speech.lower():
-                #if "Cosmo" in backVoice.speech.lower() or "Cozmo".lower() in backVoice.speech.lower():
-                await super().speechCheck(robot, voice, backVoice)
-                backVoice.speech = ""
-            print("This is train loop " + str(i))
-            currentState = await self.findCurrentState(robot)
-            print("This is the final state " +  str(currentState))
-            if currentState != None:
-                maxValue = np.max(self.Q[currentState][:])
-                await self.nextAction(currentState, robot)
-                await robot.say_text("What did you think?").wait_for_completed()
-                try:
-                    while voice.clearSpeech == False:
-                        await asyncio.wait_for(voice.voiceComms(), 10)
-                    voice.clearSpeech = False
-                    reward = 0
-                    print("This is the code words " + voice.speech)
-                    compMed = re.search(r"\bmed",voice.speech)
-                    compBad= re.search(r"ad\b",voice.speech)
-                    compGood = re.search(r"ood\b",voice.speech)
-                    if compGood:
-                        bef = self.Q[currentState][nextActionIndex]
-                        self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][
-                            nextActionIndex] + (self.rate * round(3 + self.gamma * maxValue))
-                        reward = self.Q[currentState][nextActionIndex] - bef
-                        await robot.say_text("Perfect").wait_for_completed()
-                        await robot.play_anim("anim_memorymatch_successhand_cozmo_01").wait_for_completed()
-                    if compMed:
-                        bef = self.Q[currentState][nextActionIndex]
-                        self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][
-                            nextActionIndex] + (self.rate * round(self.gamma * maxValue))
-                        reward = self.Q[currentState][nextActionIndex] - bef
-                        await robot.say_text("Noted").wait_for_completed()
-                        await robot.play_anim("anim_memorymatch_reacttopattern_standard_01").wait_for_completed()
-                    elif compBad:
-                        bef = self.Q[currentState][nextActionIndex]
-                        self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][
-                            nextActionIndex] + (self.rate * round(-3 + self.gamma * maxValue))
-                        reward = self.Q[currentState][nextActionIndex] - bef
-                        await robot.say_text("Not Good").wait_for_completed()
-                        await robot.play_anim("anim_memorymatch_failhand_01").wait_for_completed()
-                    print(str(self.Q))
-                    self.writeToFile(currentState, nextActionIndex, reward)
-                    print("THIS IS THE LOGGED INFO " + str(currentState) + " " + str(nextActionIndex) + " " + str(self.Q[currentState][nextActionIndex]))
-                except asyncio.TimeoutError:
-                    await robot.say_text("Sorry I did not hear anything").wait_for_completed()
-            else:
-                await robot.say_text("Sorry I couldn't find your face").wait_for_completed()
+        epochNum = [5, 10, 25, 50, 100]
+        for epoch in range (len(epochNum)-1):
+            open('trainData.txt', mode='w')
+            await robot.say_text("I'm training my distance perception now").wait_for_completed()
+            for i in range(epochNum[epoch]):
+                print("THIS IS THE BACK VOICE " + backVoice.speech)
+                if "Move".lower() in backVoice.speech.lower() or "Stop".lower() in backVoice.speech.lower():
+                    await super().speechCheck(robot, voice, backVoice)
+                    backVoice.speech = ""
+                print("This is train loop " + str(i))
+                currentState = await self.findCurrentState(robot)
+                print("This is the final state " +  str(currentState))
+                if currentState != None:
+                    maxValue = np.max(self.Q[currentState][:])
+                    await self.nextAction(currentState, robot)
+                    await robot.say_text("What did you think?").wait_for_completed()
+                    try:
+                        while voice.clearSpeech == False:
+                            await asyncio.wait_for(voice.voiceComms(), 10)
+                        voice.clearSpeech = False
+                        reward = 0
+                        print("This is the code words " + voice.speech)
+                        compMed = re.search(r"\bmed",voice.speech)
+                        compBad= re.search(r"ad\b",voice.speech)
+                        compGood = re.search(r"ood\b",voice.speech)
+                        if compGood:
+                            bef = self.Q[currentState][nextActionIndex]
+                            self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round(3 + self.gamma * maxValue))
+                            reward = self.Q[currentState][nextActionIndex] - bef
+                            await robot.say_text("Perfect").wait_for_completed()
+                            await robot.play_anim("anim_memorymatch_successhand_cozmo_01").wait_for_completed()
+                        if compMed:
+                            bef = self.Q[currentState][nextActionIndex]
+                            self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round(self.gamma * maxValue))
+                            reward = self.Q[currentState][nextActionIndex] - bef
+                            await robot.say_text("Noted").wait_for_completed()
+                            await robot.play_anim("anim_memorymatch_reacttopattern_standard_01").wait_for_completed()
+                        elif compBad:
+                            bef = self.Q[currentState][nextActionIndex]
+                            self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round(-3 + self.gamma * maxValue))
+                            reward = self.Q[currentState][nextActionIndex] - bef
+                            await robot.say_text("Not Good").wait_for_completed()
+                            await robot.play_anim("anim_memorymatch_failhand_01").wait_for_completed()
+                        print(str(self.Q))
+                        self.writeToFileTrain(currentState, nextActionIndex, reward)
+                        print("THIS IS THE LOGGED INFO " + str(currentState) + " " + str(nextActionIndex) + " " + str(self.Q[currentState][nextActionIndex]))
+                    except asyncio.TimeoutError:
+                        await robot.say_text("Sorry I did not hear anything").wait_for_completed()
+                else:
+                    await robot.say_text("Sorry I couldn't find your face").wait_for_completed()
+            await self.testCozmo(robot,backVoice)
+            open("testdata" + str(epochNum[epoch]) + "rate" + str(self.rate) , mode='w')
+            self.writeToFileTest(str(epochNum[epoch]))
+            self.totalScore = 0
 
     async def testCozmo(self, robot: cozmo.robot.Robot, voice):
         await robot.say_text("I'm going to be tested now").wait_for_completed()
-        for i in range(1):
+        for i in range(50):
             if "Move".lower() in voice.speech.lower() or "Stop".lower() in voice.speech.lower():
-                if "Cozmo".lower() in voice.speech.lower() or "Cosmo".lower() in voice.speech.lower():
                     await super().speechCheckTest(robot, voice)
                     voice.speech = ""
             else:
@@ -449,3 +431,5 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                     self.totalScore = self.totalScore + self.Q[currentState][self.maxAction]
                 else:
                     await robot.say_text("Sorry I couldn´t find your face").wait_for_completed()
+
+

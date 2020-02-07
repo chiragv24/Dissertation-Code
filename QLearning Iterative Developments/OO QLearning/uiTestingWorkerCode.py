@@ -22,10 +22,8 @@ class mainWorker():
         loop.run_forever()
 
     def makeWorker(self):
-        #newLoopWorker = asyncio.new_event_loop()
         tWorker = Thread(target=self.runTrain1)
         tWorker.start()
-        #newLoopWorker.call_soon_threadsafe(self.runTrain1)
         return tWorker
 
     def startLoop(self, loop):
