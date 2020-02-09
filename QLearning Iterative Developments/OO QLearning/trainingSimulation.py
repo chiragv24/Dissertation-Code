@@ -7,6 +7,7 @@ import time
 import abc
 import threading
 from threading import Thread
+import re
 import ctypes
 from microIntegration import voiceIntegrationBack
 
@@ -76,37 +77,70 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         self.loop = asyncio.get_event_loop()
         self.maxAction = 0
         self.totalScore = 0
-        self.rate = 0.05
+        self.rate = 0.4
         self.voice.sleepTime = 20
         #self.name = "voice"
 
-    def speechCheck(self,voice):
+    def speechCheck(self,voice,epoch):
         print("This is the voice speech " + voice.speech)
-        if "Move".lower() in voice.speech.lower():
+        compMove = re.search(r"ove\b", voice.speech)
+        compStop = re.search(r"top\b", voice.speech)
+        reward = 0
+        dist = self.findCurrentState()
+        if compMove:
             print("It is doing the voice methods now")
-            dist =  self.findCurrentState()
             randomAction = randint(0,3)
-            maxValue = np.max(voice.moveRewards[dist][:])
-            # Updating the Q matrix for the voice + distance orthogonal
-            voice.QMove[dist][randomAction] = (1 - self.rate) * self.Q[dist][randomAction] + (self.rate * round(voice.moveRewards[dist][randomAction] + self.gamma * maxValue, 2))
+            maxValue = np.max(voice.QMove[dist][:])
+            x = self.scoreMove(dist,randomAction)
+            if x == 'g':
+                bef = voice.QMove[dist][randomAction]
+                voice.QMove[dist][randomAction] = (1 - self.rate) * voice.QMove[dist][randomAction] + (self.rate * round(3 + self.gamma * maxValue))
+                reward = voice.QMove[dist][nextActionIndex] - bef
+            if x == 'm':
+                bef = voice.QMove[dist][randomAction]
+                voice.QMove[dist][randomAction] = (1 - self.rate) * voice.QMove[dist][randomAction] + (self.rate * round(self.gamma * maxValue))
+                reward = voice.QMove[dist][nextActionIndex] - bef
+            if x == 'b':
+                bef = voice.QMove[dist][randomAction]
+                voice.QMove[dist][randomAction] = (1 - self.rate) * voice.QMove[dist][randomAction] + (self.rate * round(-3 + self.gamma * maxValue))
+                reward = voice.QMove[dist][nextActionIndex] - bef
             print("This is the move Q Matrix " + str(voice.QMove))
-        elif "Stop".lower() in voice.speech.lower():
+            voice.speech = ""
+            self.writeToFileTrain(dist, nextActionIndex, reward, epoch)
+        elif compStop:
+            print("It is doing the voice methods now")
             randomAction = randint(0, 1)
-            maxValue = np.max(voice.stopRewards)
-            voice.QStop[randomAction] = (1 - self.rate) * voice.QStop[randomAction] + (self.rate * round(voice.stopRewards[randomAction] + self.gamma * maxValue, 2))
+            maxValue = np.max(voice.QStop)
+            if randomAction == 1:
+                bef = voice.QStop[randomAction]
+                voice.QStop[randomAction] = (1 - self.rate) * voice.QStop[randomAction] + (self.rate * round(3 + self.gamma * maxValue))
+                reward = voice.QStop[randomAction]-bef
+            else:
+                bef = voice.QStop[randomAction]
+                voice.QStop[randomAction] = (1 - self.rate) * voice.QStop[randomAction] + (self.rate * round(-3 + self.gamma * maxValue))
+                reward = voice.QStop[randomAction]-bef
             print("This is the stop Q Matrix " + str(voice.QStop))
+            voice.speech  = ""
+            self.writeToFileTrain(dist, nextActionIndex, reward, epoch)
 
-    def speechCheckTest(self,voice):
+    def speechCheckTest(self,voice,epochs):
+        compMove = re.search(r"ove\b", voice.speech)
+        compStop = re.search(r"top\b", voice.speech)
         print("This is the voice speech " + voice.speech)
-        if "Move".lower() in voice.speech.lower():
+        if compMove:
             dist = self.findCurrentState()
             self.maxAction = np.where(voice.QMove[dist][:] == np.max(self.Q[dist][:]))
             self.maxAction = np.amax(self.maxAction[0])
+            scoreBef = self.totalScore
             self.totalScore = self.totalScore + voice.QMove[dist][self.maxAction]
-        elif "Stop".lower() in voice.speech.lower():
+            score = self.totalScore-scoreBef
+            self.writeToFileIndTest(score, epochs)
+        elif compStop:
             maxStop = np.amax(voice.QStop)
-            self.totalScore = self.totalScore + voice.QStop[maxStop]
-            print(str(self.totalScore))
+            scoreBef = self.totalScore
+            self.totalScore = self.totalScore + maxStop
+            score = self.totalScore-scoreBef
+            self.writeToFileIndTest(score,epochs)
 
     def nextAction(self,currentState):
         nextActRand = randint(0, 3)
@@ -135,83 +169,122 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         return self.maxAction
 
     def writeToFileTest(self,epochNum):
-        file = open("testdata" + str(epochNum) + "rate" + str(self.rate)+".txt" , mode='a')
+        file = open("testdatafinalscore" + str(epochNum) + "rate" + str(self.rate) + "gamma" + str(self.gamma) +".txt" , mode='a+')
         file.write(str(epochNum) + " " + str(self.rate) + " " + str(self.totalScore))
         file.write("\n")
         file.close()
 
+    def writeToFileIndTest(self,score,epochNum):
+        file = open("testdatarate " + str(self.rate) + "epoch" +  str(epochNum)+ "gamma" + str(self.gamma) + ".txt", mode='a+')
+        file.write(str(score))
+        file.write("\n")
+        file.close()
+
     def writeToFileTrain(self, currentState, action, reward, epochNum):
-        file = open('trainData.txt' + str(epochNum) + "rate" + str(self.rate)+".txt"  , mode='a')
+        file = open('trainData' + str(epochNum) + "rate" + str(self.rate)+ "gamma" + str(self.gamma) + ".txt", mode='a+')
         file.write(str(currentState) + " " + str(action) + " " + str(reward))
         file.write("\n")
         file.close()
 
-    def trainCozmo(self,backVoice):
-        epochNum = [5, 10, 25, 50, 100]
-        for epoch in range (len(epochNum)):
-            open('trainData.txt', mode='w')
-            for i in range(epochNum[epoch]):
-                if "Move".lower() in backVoice.speech.lower() or "Stop".lower() in backVoice.speech.lower():
-                    print("Speech " + backVoice.speech.lower())
-                    self.speechCheck(backVoice)
-                else:
-                    currentState = self.findCurrentState()
-                    stringState = ""
-                    if currentState == 0:
-                        stringState = "Far"
-                    elif currentState == 1:
-                        stringState = "Optimal"
-                    else:
-                        stringState = "Close"
-                    maxValue = np.max(self.Q[currentState][:])
-                    self.nextAction(currentState)
-                    nextActStr = ""
-                    if nextActionIndex == 0:
-                        nextActStr = "Back"
-                    elif nextActionIndex == 1:
-                        nextActStr = "Front"
-                    elif nextActionIndex == 2:
-                        nextActStr = "Greet"
-                    else:
-                        nextActStr = "Idle"
-                    reward = 0
-                    print("This is the state " + stringState )
-                    print("This is the action " + nextActStr)
-                    x = input("Please rate the move\n")
-                    if x == 'g':
-                        bef = self.Q[currentState][nextActionIndex]
-                        self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round(3 + self.gamma * maxValue))
-                        reward = self.Q[currentState][nextActionIndex] - bef
-                    if x == 'm':
-                        bef = self.Q[currentState][nextActionIndex]
-                        self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round(self.gamma * maxValue))
-                        reward = self.Q[currentState][nextActionIndex] - bef
-                    if x == 'b':
-                        bef = self.Q[currentState][nextActionIndex]
-                        self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round(-3 + self.gamma * maxValue))
-                        reward = self.Q[currentState][nextActionIndex] - bef
-                    print("This is the basic Q Matrix " + str(self.Q))
-                    self.writeToFileTrain(currentState, nextActionIndex, reward, epoch)
-                print(str(i) + "finished")
-                time.sleep(7)
-            self.testCozmo(backVoice)
-            open("testdata" + str(epochNum[epoch]) + "rate" + str(self.rate) , mode='w')
-            self.writeToFileTest(str(epochNum[epoch]))
-            self.totalScore = 0
-            self.Q = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+    def scoreMove(self,currentState,actionNum):
+        if currentState == 0:
+            if actionNum == 1:
+                return 'g'
+            else:
+                return 'b'
+        elif currentState == 1:
+            if actionNum == 2:
+                return 'g'
+            elif actionNum == 3:
+                return 'm'
+            else:
+                return 'b'
+        else:
+            if actionNum == 0:
+                return 'g'
+            else:
+                return 'b'
 
-    def testCozmo(self,voice):
+    def trainCozmo(self,backVoice):
+        gammaRates = [0.1,0.25,0.5,0.75,1]
+        for gamma in range (len(gammaRates)):
+            self.gamma = gammaRates[gamma]
+            learnRates = [0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,1]
+            for learn in range (len(learnRates)):
+                self.rate = learnRates[learn]
+                epochNum = [5, 10, 25, 50, 100, 150, 200, 250, 300, 350, 400]
+                for epoch in range (len(epochNum)):
+                    open('trainData.txt', mode='w')
+                    for i in range(epochNum[epoch]):
+                        compMove = re.search(r"ove\b", backVoice.speech)
+                        compStop = re.search(r"top\b", backVoice.speech)
+                        if compMove or compStop:
+                            print("Speech " + backVoice.speech.lower())
+                            self.speechCheck(backVoice,epoch)
+                        else:
+                            currentState = self.findCurrentState()
+                            stringState = ""
+                            if currentState == 0:
+                                stringState = "Far"
+                            elif currentState == 1:
+                                stringState = "Optimal"
+                            else:
+                                stringState = "Close"
+                            maxValue = np.max(self.Q[currentState][:])
+                            self.nextAction(currentState)
+                            nextActStr = ""
+                            if nextActionIndex == 0:
+                                nextActStr = "Back"
+                            elif nextActionIndex == 1:
+                                nextActStr = "Front"
+                            elif nextActionIndex == 2:
+                                nextActStr = "Greet"
+                            else:
+                                nextActStr = "Idle"
+                            reward = 0
+                            print("This is the state " + stringState )
+                            print("This is the action " + nextActStr)
+                            x = self.scoreMove(currentState,nextActionIndex)
+                            if x == 'g':
+                                bef = self.Q[currentState][nextActionIndex]
+                                self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round(3 + self.gamma * maxValue))
+                                reward = self.Q[currentState][nextActionIndex] - bef
+                            if x == 'm':
+                                bef = self.Q[currentState][nextActionIndex]
+                                self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round(self.gamma * maxValue))
+                                reward = self.Q[currentState][nextActionIndex] - bef
+                            if x == 'b':
+                                bef = self.Q[currentState][nextActionIndex]
+                                self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round(-3 + self.gamma * maxValue))
+                                reward = self.Q[currentState][nextActionIndex] - bef
+                            print("This is the basic Q Matrix " + str(self.Q))
+                            self.writeToFileTrain(currentState, nextActionIndex, reward, epoch)
+                        print(str(i) + "finished")
+                    self.testCozmo(backVoice,str(epochNum[epoch]))
+                    self.writeToFileTest(str(epochNum[epoch]))
+                    self.totalScore = 0
+                    self.Q = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+                    backVoice.QMove = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+                    backVoice.QStop = [0,0]
+
+    def testCozmo(self,voice,epochs):
         print("THIS IS THE TESTING STAGE")
         for i in range (50):
-            if "Move".lower() in voice.speech.lower() or "Stop".lower() in voice.speech.lower():
+            compMove = re.search(r"ove\b", voice.speech)
+            compStop = re.search(r"top\b", voice.speech)
+            if compMove or compStop:
                 print("RUNNING VOICE STUFF")
-                self.speechCheckTest(voice)
+                self.speechCheckTest(voice,epochs)
                 voice.speech = ""
+                print(str(self.totalScore))
             else:
                 currentState =  self.findCurrentState()
                 if currentState != None:
                     self.nextActionMax(currentState)
+                    scoreBef = self.totalScore
                     self.totalScore = self.totalScore + self.Q[currentState][self.maxAction]
+                    moveScore = self.totalScore - scoreBef
+                    self.writeToFileIndTest(moveScore,epochs)
                     print("This is the basic Q Matrix " + str(self.Q))
                     print(str(self.totalScore))
                 else:
