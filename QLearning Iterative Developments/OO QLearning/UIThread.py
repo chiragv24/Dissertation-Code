@@ -28,7 +28,11 @@ class UI():
     def updateLabels(self):
         self.bVoice.set("Your background commands: " + self.worker.backVoice.speech)
         self.voice.set("Your score commands: " + self.worker.voice.speech)
-        self.q.set("The Q-Matrix " + str(self.worker.agent1.roundQ))
+        roundMatrix = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0]]
+        for i in range (len(self.worker.agent1.Q)):
+            for j in range (len(self.worker.agent1.Q[i])):
+                roundMatrix[i][j] = round(self.worker.agent1.Q[i][j],2)
+        self.q.set("The Q-Matrix " + str(roundMatrix))
         self.root.after(500,self.updateLabels)
 
     def startWorker(self):

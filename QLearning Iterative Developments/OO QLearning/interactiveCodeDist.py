@@ -34,11 +34,6 @@ class QLearnSuperClass(abc.ABC):
     async def nextAction(self, *args, **kwargs):
         pass
 
-    def update(self, currentState, action, gamma):
-        maxValue = np.max(self.Q[currentState][:])
-        rating = 0
-        self.Q[currentState][action] = round((1 - self.rate) * self.Q[currentState][action] + (self.rate * round(self.rewards[rating] + gamma * maxValue, 2),2))
-
     @abc.abstractmethod
     def findCurrentState(self, robot: cozmo.robot.Robot):
         pass
@@ -61,24 +56,6 @@ class QLearnSuperClass(abc.ABC):
         t.start()
         newLoop.call_soon_threadsafe(self.voice.voiceComms)
         return t
-
-    async def scoringSystem(self,robot:cozmo.robot.Robot,state,action,maxValue,voice):
-        compMed = re.search(r"\bok", voice.speech)
-        compBad = re.search(r"ad\b", voice.speech)
-        compGood = re.search(r"ood\b", voice.speech)
-        await robot.say_text("What did you think?").wait_for_completed()
-        while voice.clearSpeech == False:
-            await voice.voiceComms()
-        if compGood:
-            await robot.say_text("Perfect").wait_for_completed()
-            self.Q[state][action] = (1 - self.rate) * self.Q[state][action] + (self.rate * (3 + self.gamma * maxValue))
-        elif compMed:
-            await robot.say_text("Noted").wait_for_completed()
-            self.Q[state][action] = (1 - self.rate) * self.Q[state][action] + (self.rate * (self.gamma * maxValue))
-        elif compBad:
-            await robot.say_text("Has to be improved").wait_for_completed()
-            self.Q[state][action] = (1 - self.rate) * self.Q[state][action] + (self.rate * (-3 - self.gamma * maxValue))
-        print("This is the move Q Matrix " + str(voice.QMove))
 
     async def voiceMove(self, robot: cozmo.robot.Robot, action):
         await robot.say_text("Move command").wait_for_completed()
@@ -268,10 +245,6 @@ class QLearnDistOrthogonal(QLearnSuperClass):
 
     def detectIfFarOrClose(self,robot:cozmo.robot.Robot):
         robot.add_event_handler(cozmo.objects.EvtObjectMovingStopped,self.handleCubeMove)
-
-    def cubeDistanceMove(self,robot:cozmo.robot.Robot):
-        if self.cubeMoved:
-
 
     async def searchForFace(self, robot: cozmo.robot.Robot):
         self.cubeMoved = False

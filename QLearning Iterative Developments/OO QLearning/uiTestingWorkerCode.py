@@ -1,4 +1,4 @@
-from interactiveCodeDist import QLearnDistOrthogonal
+from interactiveCodeDistRefactored import QLearnDistOrthogonal
 from threading import Thread
 import threading
 import asyncio
@@ -6,7 +6,6 @@ import cozmo
 import time
 from microIntegrationInteractive import voiceIntegration
 from microIntegration import voiceIntegrationBack
-
 
 class mainWorker():
 
@@ -41,7 +40,4 @@ class mainWorker():
     async def cozmoDistHelper(self,robot:cozmo.robot.Robot):
         await self.agent1.trainCozmo(robot,self.voice,self.backVoice)
 
-    async def runLoop(self,robot:cozmo.robot.Robot):
-        while True:
-            await self.agent1.testCozmo(robot,self.backVoice)
 
