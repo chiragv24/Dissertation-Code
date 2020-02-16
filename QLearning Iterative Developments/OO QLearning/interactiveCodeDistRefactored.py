@@ -95,29 +95,33 @@ class QLearnSuperClass(abc.ABC):
         print("This is the voice speech " + backVoice.speech)
         compMove = re.search(r"ove\b", backVoice.speech)
         compStop = re.search(r"top\b", backVoice.speech)
-        compMed = re.search(r"\bok", backVoice.speech)
-        compBad = re.search(r"ad\b", backVoice.speech)
-        compGood = re.search(r"ood\b", backVoice.speech)
+        compMed = re.search(r"\bok", voice.speech)
+        compBad = re.search(r"ad\b", voice.speech)
+        compGood = re.search(r"ood\b", voice.speech)
+        # compMed = re.search(r"\bok", backVoice.speech)
+        # compBad = re.search(r"ad\b", backVoice.speech)
+        # compGood = re.search(r"ood\b", backVoice.speech)
         if compMove:
             print("It is doing the voice methods now")
             dist = await self.findCurrentState(robot)
             randomAction = randint(0, 3)
             await self.voiceMove(robot, randomAction)
             maxValue = np.max(voice.QMove[dist][:])
-            # Updating the Q matrix for the voice + distance orthogonal
-            await robot.say_text("What did you think?").wait_for_completed()
-            while voice.clearSpeech == False:
-                await voice.voiceComms()
-            if compGood:
-                await robot.say_text("Perfect").wait_for_completed()
-                self.Q[dist][randomAction] = (1 - self.rate) * self.Q[dist][randomAction] + (self.rate * (3 + self.gamma * maxValue))
-            elif compMed:
-                await robot.say_text("Noted").wait_for_completed()
-                self.Q[dist][randomAction] = (1 - self.rate) * self.Q[dist][randomAction] + (self.rate * (self.gamma * maxValue))
-            elif compBad:
-                await robot.say_text("Has to be improved").wait_for_completed()
-                self.Q[dist][randomAction] = (1 - self.rate) * self.Q[dist][randomAction] + (self.rate * (-3 - self.gamma * maxValue))
-            print("This is the move Q Matrix " + str(voice.QMove))
+            self.scoringSystem(robot,dist,randomAction,maxValue,)
+            # # Updating the Q matrix for the voice + distance orthogonal
+            # await robot.say_text("What did you think?").wait_for_completed()
+            # while voice.clearSpeech == False:
+            #     await voice.voiceComms()
+            # if compGood:
+            #     await robot.say_text("Perfect").wait_for_completed()
+            #     self.Q[dist][randomAction] = (1 - self.rate) * self.Q[dist][randomAction] + (self.rate * (3 + self.gamma * maxValue))
+            # elif compMed:
+            #     await robot.say_text("Noted").wait_for_completed()
+            #     self.Q[dist][randomAction] = (1 - self.rate) * self.Q[dist][randomAction] + (self.rate * (self.gamma * maxValue))
+            # elif compBad:
+            #     await robot.say_text("Has to be improved").wait_for_completed()
+            #     self.Q[dist][randomAction] = (1 - self.rate) * self.Q[dist][randomAction] + (self.rate * (-3 - self.gamma * maxValue))
+            # print("This is the move Q Matrix " + str(voice.QMove))
         elif compStop:
             await robot.say_text("Stop command").wait_for_completed()
             randomAction = randint(0, 1)

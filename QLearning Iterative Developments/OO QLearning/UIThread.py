@@ -28,8 +28,8 @@ class UI():
     def updateLabels(self):
         self.bVoice.set("Your background commands: " + self.worker.backVoice.speech)
         self.voice.set("Your score commands: " + self.worker.voice.speech)
-        self.q.set("The Q-Matrix " + str(self.worker.agent1.Q))
-        self.root.after(5000,self.updateLabels)
+        self.q.set("The Q-Matrix " + str(self.worker.agent1.roundQ))
+        self.root.after(500,self.updateLabels)
 
     def startWorker(self):
         self.worker.makeThread()
@@ -37,7 +37,7 @@ class UI():
 
     def runLoop(self):
         self.startWorker()
-        self.root.after(5000,self.updateLabels())
+        self.root.after(500,self.updateLabels())
         self.root.mainloop()
 
 ui = UI()

@@ -25,8 +25,5 @@ makeThread()
 
 agent1.trainCozmo(voice)
 
-print(agent1.Q)
-print(agent1.totalScore)
-
 
 

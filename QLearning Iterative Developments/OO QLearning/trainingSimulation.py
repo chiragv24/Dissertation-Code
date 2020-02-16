@@ -78,8 +78,6 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         self.maxAction = 0
         self.totalScore = 0
         self.rate = 0.4
-        self.voice.sleepTime = 20
-        #self.name = "voice"
 
     def speechCheck(self,voice,epoch):
         print("This is the voice speech " + voice.speech)
@@ -168,11 +166,35 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         facialExp = self.facialExpressionEstimate()
         return self.maxAction
 
-    def writeToFileTest(self,epochNum):
-        file = open("testdatafinalscore" + str(epochNum) + "rate" + str(self.rate) + "gamma" + str(self.gamma) +".txt" , mode='a+')
+    def writeToFileTestEpoch(self,epochNum):
+        file = open("testdatafinalscore"+"epoch"+str(epochNum)+".txt",mode='a+')
+        fileName = file.name
         file.write(str(epochNum) + " " + str(self.rate) + " " + str(self.totalScore))
         file.write("\n")
         file.close()
+        return fileName
+
+    def writeToFileTestRate(self,epochNum):
+        file = open("testdatafinalscore"+"rate"+str(self.rate)+".txt",mode='a+')
+        fileName = file.name
+        file.write(str(epochNum) + " " + str(self.rate) + " " + str(self.totalScore))
+        file.write("\n")
+        file.close()
+        return fileName
+
+    def averageVal(self,filename):
+        with open (filename) as f:
+            lines = f.readlines()
+            y = [line.split()[2] for line in lines]
+            count = 0
+            for i in range (len(y)):
+                count = count + float(y[i])
+            count = count / len(y)
+        file = open(str(filename),mode='a+')
+        file.write(str(count))
+        file.write("\n")
+        file.close()
+        return count
 
     def writeToFileIndTest(self,score,epochNum):
         file = open("testdatarate " + str(self.rate) + "epoch" +  str(epochNum)+ "gamma" + str(self.gamma) + ".txt", mode='a+')
@@ -208,8 +230,8 @@ class QLearnDistOrthogonal(QLearnSuperClass):
     def trainCozmo(self,backVoice):
         gammaRates = [0.1,0.25,0.5,0.75,1]
         for gamma in range (len(gammaRates)):
-            self.gamma = gammaRates[gamma]
-            learnRates = [0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,1]
+            #learnRates = [0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,1]
+            learnRates = [0.4]
             for learn in range (len(learnRates)):
                 self.rate = learnRates[learn]
                 epochNum = [5, 10, 25, 50, 100, 150, 200, 250, 300, 350, 400]
@@ -247,21 +269,22 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                             x = self.scoreMove(currentState,nextActionIndex)
                             if x == 'g':
                                 bef = self.Q[currentState][nextActionIndex]
-                                self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round(3 + self.gamma * maxValue))
+                                self.Q[currentState][nextActionIndex] = round((1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round((1 + self.gamma * maxValue),2)),2)
                                 reward = self.Q[currentState][nextActionIndex] - bef
                             if x == 'm':
                                 bef = self.Q[currentState][nextActionIndex]
-                                self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round(self.gamma * maxValue))
+                                self.Q[currentState][nextActionIndex] = round((1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round((self.gamma * maxValue),2)),2)
                                 reward = self.Q[currentState][nextActionIndex] - bef
                             if x == 'b':
                                 bef = self.Q[currentState][nextActionIndex]
-                                self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round(-3 + self.gamma * maxValue))
+                                self.Q[currentState][nextActionIndex] = round((1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round((-self.gamma * maxValue),2)),2)
                                 reward = self.Q[currentState][nextActionIndex] - bef
                             print("This is the basic Q Matrix " + str(self.Q))
                             self.writeToFileTrain(currentState, nextActionIndex, reward, epoch)
                         print(str(i) + "finished")
                     self.testCozmo(backVoice,str(epochNum[epoch]))
-                    self.writeToFileTest(str(epochNum[epoch]))
+                    self.writeToFileTestRate(str(epochNum[epoch]))
+                    self.writeToFileTestEpoch(str(epochNum[epoch]))
                     self.totalScore = 0
                     self.Q = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
                     backVoice.QMove = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
@@ -282,7 +305,7 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                 if currentState != None:
                     self.nextActionMax(currentState)
                     scoreBef = self.totalScore
-                    self.totalScore = self.totalScore + self.Q[currentState][self.maxAction]
+                    self.totalScore = round(self.totalScore + self.Q[currentState][self.maxAction],2)
                     moveScore = self.totalScore - scoreBef
                     self.writeToFileIndTest(moveScore,epochs)
                     print("This is the basic Q Matrix " + str(self.Q))

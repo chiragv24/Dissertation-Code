@@ -1,6 +1,4 @@
 from interactiveCodeDist import QLearnDistOrthogonal
-from interactiveCode import QLearnLiftOrthogonal
-from interactiveCode import QLearnTurnOrthogonal
 from threading import Thread
 import threading
 import asyncio

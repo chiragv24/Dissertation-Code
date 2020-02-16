@@ -12,8 +12,6 @@ class voiceIntegrationBack():
         self.action = False
         self.clearSpeech = False
         self.QMove= [[0,0,0,0],[0,0,0,0],[0,0,0,0]]
-        self.moveRewards = [[2,-0.5,-2,-5],[-1,0,0.5,-5],[-2.5,-1,1,-5]]
-        self.stopRewards =[2,-2]
         self.QStop = [0,0]
         self.sleepTime = 0
         self.running = True
