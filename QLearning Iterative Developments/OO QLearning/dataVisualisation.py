@@ -21,6 +21,20 @@ def rateGraph(rates):
             plt.ylabel("Average Score")
             plt.title("Comparison of scores with rate " + str(rates))
 
+def rewardsGraph(filename):
+    with open(filename) as f:
+        lines = f.readlines()
+        x = [line.split()[0] for line in lines]
+        y = [line.split()[2] for line in lines]
+        #z = [line.split()[1] for line in lines]
+        for i in range(len(y)):
+            y[i] = float(y[i])
+        plt.plot(x,y,'bo')
+        plt.show()
+
+
+
+
 def ratevscoreGraph(filename,type):
     plt.figure()
     with open(filename) as f:
@@ -146,18 +160,19 @@ def gammaReward(filename,epochs,rate,gamma):
         plt.title("Comparison of rewards with Discount Factor " + str(gamma) + " with " + str(epochs) + " and rate " + str(rate))
         plt.show()
 
-epochGraph([5,25,100,200,300,400])
-rateGraph([0.1,0.25,0.5,0.75,1])
-ratevscoreGraph("avgscorevrate.txt","rate")
-ratevscoreGraph("avgscorevepoch.txt","epochs")
-epochratescore("testfinalscorestotal.txt")
-gammaepochscore("gammavepochsvscore.txt",0.25)
-gammaratescore("epoch200vsgamma.txt",200)
-gammaGraph([5,10,25,50,100,200,300,400],0.25)
-gammaReward("trainData6rate0.25gamma0.1.txt",200,0.25,0.1)
-gammaReward("trainData6rate0.25gamma0.25.txt",200,0.25,0.25)
-gammaReward("trainData6rate0.25gamma0.5.txt",200,0.25,0.5)
-gammaReward("trainData6rate0.25gamma0.75.txt",200,0.25,0.75)
-gammaReward("trainData6rate0.25gamma1.txt",200,0.25,1)
+# epochGraph([5,25,100,200,300,400])
+# rateGraph([0.1,0.25,0.5,0.75,1])
+# ratevscoreGraph("avgscorevrate.txt","rate")
+# ratevscoreGraph("avgscorevepoch.txt","epochs")
+# epochratescore("testfinalscorestotal.txt")
+# gammaepochscore("gammavepochsvscore.txt",0.25)
+# gammaratescore("epoch200vsgamma.txt",200)
+# gammaGraph([5,10,25,50,100,200,300,400],0.25)
+# gammaReward("trainData6rate0.25gamma0.1.txt",200,0.25,0.1)
+# gammaReward("trainData6rate0.25gamma0.25.txt",200,0.25,0.25)
+# gammaReward("trainData6rate0.25gamma0.5.txt",200,0.25,0.5)
+# gammaReward("trainData6rate0.25gamma0.75.txt",200,0.25,0.75)
+# gammaReward("trainData6rate0.25gamma1.txt",200,0.25,1)
+rewardsGraph("trainData0rate0.4gamma0.9.txt")
 
 

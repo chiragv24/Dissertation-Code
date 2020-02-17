@@ -228,15 +228,15 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                 return 'b'
 
     def trainCozmo(self,backVoice):
-        gammaRates = [0.1,0.25,0.5,0.75,1]
+        gammaRates = [0.9]
         for gamma in range (len(gammaRates)):
             #learnRates = [0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,1]
+            self.gamma = gammaRates[gamma]
             learnRates = [0.4]
             for learn in range (len(learnRates)):
                 self.rate = learnRates[learn]
-                epochNum = [5, 10, 25, 50, 100, 150, 200, 250, 300, 350, 400]
+                epochNum = [4000]
                 for epoch in range (len(epochNum)):
-                    open('trainData.txt', mode='w')
                     for i in range(epochNum[epoch]):
                         compMove = re.search(r"ove\b", backVoice.speech)
                         compStop = re.search(r"top\b", backVoice.speech)
@@ -268,17 +268,17 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                             print("This is the action " + nextActStr)
                             x = self.scoreMove(currentState,nextActionIndex)
                             if x == 'g':
-                                bef = self.Q[currentState][nextActionIndex]
-                                self.Q[currentState][nextActionIndex] = round((1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round((1 + self.gamma * maxValue),2)),2)
-                                reward = self.Q[currentState][nextActionIndex] - bef
+                                #bef = self.Q[currentState][nextActionIndex]
+                                self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * (3 + self.gamma * maxValue))
+                                reward = self.Q[currentState][nextActionIndex]
                             if x == 'm':
-                                bef = self.Q[currentState][nextActionIndex]
-                                self.Q[currentState][nextActionIndex] = round((1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round((self.gamma * maxValue),2)),2)
-                                reward = self.Q[currentState][nextActionIndex] - bef
+                                #bef = self.Q[currentState][nextActionIndex]
+                                self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * (self.gamma * maxValue))
+                                reward = self.Q[currentState][nextActionIndex]
                             if x == 'b':
-                                bef = self.Q[currentState][nextActionIndex]
-                                self.Q[currentState][nextActionIndex] = round((1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * round((-self.gamma * maxValue),2)),2)
-                                reward = self.Q[currentState][nextActionIndex] - bef
+                                #bef = self.Q[currentState][nextActionIndex]
+                                self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * (-3 + self.gamma * maxValue))
+                                reward = self.Q[currentState][nextActionIndex]
                             print("This is the basic Q Matrix " + str(self.Q))
                             self.writeToFileTrain(currentState, nextActionIndex, reward, epoch)
                         print(str(i) + "finished")
