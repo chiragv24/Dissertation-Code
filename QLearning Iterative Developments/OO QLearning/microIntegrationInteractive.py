@@ -1,9 +1,5 @@
 import speech_recognition as sr
-import cozmo
-import threading
-import sys
 import asyncio
-import time
 
 class voiceIntegration():
 

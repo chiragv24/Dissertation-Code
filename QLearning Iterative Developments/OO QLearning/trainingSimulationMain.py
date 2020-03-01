@@ -1,29 +1,33 @@
 from trainingSimulation import QLearnDistOrthogonal
 from microIntegration import voiceIntegrationBack
-from random import randint
 import asyncio
-import threading
 from threading import Thread
-import time
 
-agent1 = QLearnDistOrthogonal()
-voice = voiceIntegrationBack()
+class trainMain():
 
-def startLoop(loop):
-    asyncio.set_event_loop(loop)
-    loop.run_forever()
+    def __init__(self):
+        self.agent1 = QLearnDistOrthogonal()
+        self.voice = voiceIntegrationBack()
+
+    def startLoop(self,loop):
+        asyncio.set_event_loop(loop)
+        loop.run_forever()
+
+    def makeThread(self):
+        newLoop = asyncio.new_event_loop()
+        t = Thread(target=self.startLoop, args=(newLoop,), daemon=True)
+        t.start()
+        newLoop.call_soon_threadsafe(self.voice.voiceComms)
+        return t
+
+    def runTrain(self):
+        self.agent1.trainCozmo(self.voice)
 
 
-def makeThread():
-    newLoop = asyncio.new_event_loop()
-    t = Thread(target=startLoop, args=(newLoop,), daemon=True)
-    t.start()
-    newLoop.call_soon_threadsafe(voice.voiceComms)
-    return t
+train = trainMain()
+train.makeThread()
+train.runTrain()
 
-makeThread()
-
-agent1.trainCozmo(voice)
 
 
 

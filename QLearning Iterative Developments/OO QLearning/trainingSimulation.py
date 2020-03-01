@@ -1,82 +1,26 @@
-import cozmo
 import asyncio
-from cozmo.util import distance_mm, speed_mmps
 from random import randint
 import numpy as np
-import time
 import abc
-import threading
 from threading import Thread
 import re
-import ctypes
 from microIntegration import voiceIntegrationBack
 
-class QLearnSuperClass(abc.ABC):
+class QLearnDistOrthogonal():
 
     nextActionIndex = 0
 
     def __init__(self):
-        self.initState = 0
-        self.gamma = 0.5
-        self.nextActIndex = 0
-        self.Q = []
-        self.states = []
-        self.rewards = []
-        self.rate = 0.05
-        self.voice = voiceIntegrationBack()
-
-    @abc.abstractmethod
-    def nextAction(self,*args,**kwargs):
-        pass
-
-    def update(self,currentState,action,gamma):
-        maxValue = np.max(self.Q[currentState][:])
-        self.Q[currentState][action] = (1 - self.rate) * self.Q[currentState][action] + (self.rate * round(self.rewards[currentState][action] + gamma * maxValue, 2))
-
-    @abc.abstractmethod
-    def findCurrentState(self):
-        pass
-
-    @abc.abstractmethod
-    def trainCozmo(self,*args,**kwargs):
-        pass
-
-    @abc.abstractmethod
-    def testCozmo(self,*args,**kwargs):
-        pass
-
-    def startLoop(self,loop):
-        asyncio.set_event_loop(loop)
-        loop.run_forever()
-
-    def makeThread(self):
-        newLoop = asyncio.new_event_loop()
-        t = Thread(target=self.startLoop, args=(newLoop,), daemon=True)
-        t.start()
-        newLoop.call_soon_threadsafe(self.voice.voiceComms)
-        return t
-
-
-
-###############################################################################################################################################
-
-class QLearnDistOrthogonal(QLearnSuperClass):
-
-    nextActionIndex = 0
-
-    def __init__(self):
-        super(QLearnDistOrthogonal,self).__init__()
         self.actions = [0,1,2,3]
         self.Q = [[0 ,0, 0, 0],[0, 0, 0, 0],[0, 0, 0, 0]]
-        self.facialQ = [0,0]
         self.states = [0,1,2]
-        self.gamma = 0.5
-        self.initState = 0
         self.nextActIndex = 0
         self.voice = voiceIntegrationBack()
-        self.loop = asyncio.get_event_loop()
         self.maxAction = 0
         self.totalScore = 0
+        self.gamma = 0.5
+        self.nextActIndex = 0
+        self.loop = asyncio.get_event_loop()
         self.rate = 0.4
 
     def speechCheck(self,voice,epoch):
@@ -145,11 +89,6 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         global nextActionIndex
         nextActionIndex = nextActRand
 
-    def facialExpressionEstimate(self):
-        expressions = ["unknown","happy","sad","neutral","surprised","angry"]
-        x = randint(0,len(expressions)-1)
-        return expressions[x]
-
     def searchForFace(self):
         currentState = randint(0,2)
         return currentState
@@ -163,7 +102,6 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         print(self.Q[currentState][:])
         print(self.maxAction)
         self.maxAction = np.amax(self.maxAction[0])
-        facialExp = self.facialExpressionEstimate()
         return self.maxAction
 
     def writeToFileTestEpoch(self,epochNum):
@@ -182,29 +120,15 @@ class QLearnDistOrthogonal(QLearnSuperClass):
         file.close()
         return fileName
 
-    def averageVal(self,filename):
-        with open (filename) as f:
-            lines = f.readlines()
-            y = [line.split()[2] for line in lines]
-            count = 0
-            for i in range (len(y)):
-                count = count + float(y[i])
-            count = count / len(y)
-        file = open(str(filename),mode='a+')
-        file.write(str(count))
-        file.write("\n")
-        file.close()
-        return count
-
     def writeToFileIndTest(self,score,epochNum):
         file = open("testdatarate " + str(self.rate) + "epoch" +  str(epochNum)+ "gamma" + str(self.gamma) + ".txt", mode='a+')
         file.write(str(score))
         file.write("\n")
         file.close()
 
-    def writeToFileTrain(self, currentState, action, reward, epochNum):
+    def writeToFileTrain(self, currentState, action, reward, epochNum, quality):
         file = open('trainData' + str(epochNum) + "rate" + str(self.rate)+ "gamma" + str(self.gamma) + ".txt", mode='a+')
-        file.write(str(currentState) + " " + str(action) + " " + str(reward))
+        file.write(str(currentState) + " " + str(action) + " " + str(reward) + " " +  str(quality))
         file.write("\n")
         file.close()
 
@@ -229,6 +153,7 @@ class QLearnDistOrthogonal(QLearnSuperClass):
 
     def trainCozmo(self,backVoice):
         gammaRates = [0.9]
+        quality = 0
         for gamma in range (len(gammaRates)):
             #learnRates = [0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,1]
             self.gamma = gammaRates[gamma]
@@ -271,16 +196,19 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                                 #bef = self.Q[currentState][nextActionIndex]
                                 self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * (3 + self.gamma * maxValue))
                                 reward = self.Q[currentState][nextActionIndex]
+                                quality = 3
                             if x == 'm':
                                 #bef = self.Q[currentState][nextActionIndex]
                                 self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * (self.gamma * maxValue))
                                 reward = self.Q[currentState][nextActionIndex]
+                                quality = 0
                             if x == 'b':
                                 #bef = self.Q[currentState][nextActionIndex]
                                 self.Q[currentState][nextActionIndex] = (1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * (-3 + self.gamma * maxValue))
                                 reward = self.Q[currentState][nextActionIndex]
+                                quality = -3
                             print("This is the basic Q Matrix " + str(self.Q))
-                            self.writeToFileTrain(currentState, nextActionIndex, reward, epoch)
+                            self.writeToFileTrain(currentState, nextActionIndex, reward, epoch, quality)
                         print(str(i) + "finished")
                     self.testCozmo(backVoice,str(epochNum[epoch]))
                     self.writeToFileTestRate(str(epochNum[epoch]))

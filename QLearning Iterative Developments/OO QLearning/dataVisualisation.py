@@ -1,8 +1,5 @@
-import matplotlib as mtp
+
 from matplotlib import pyplot as plt
-import decimal
-from mpl_toolkits.mplot3d import Axes3D
-import numpy as np
 
 def rateGraph(rates):
     plt.figure()
@@ -24,16 +21,57 @@ def rateGraph(rates):
 def rewardsGraph(filename):
     with open(filename) as f:
         lines = f.readlines()
-        x = [line.split()[0] for line in lines]
+        x = []
         y = [line.split()[2] for line in lines]
+        z = [line.split()[3] for line in lines]
+        posRewPos = []
+        posRews = []
+        posRewsSize = []
+        posRewPos2 = []
+        posRews2 = []
+        posRewsSize2 = []
+        posRewPos3 = []
+        posRews3 = []
+        posRewsSize3 = []
+
         #z = [line.split()[1] for line in lines]
         for i in range(len(y)):
-            y[i] = float(y[i])
-        plt.plot(x,y,'bo')
+            if z[i] == '3':
+                posRewPos.append(i)
+            x.append(i)
+            if z[i] == '-3':
+                posRewPos2.append(i)
+            if z[i] == '0':
+                posRewPos3.append(i)
+        for i in range (len(posRewPos)):
+            posRewsSize.append(i+1)
+            posRews.append(float(y[posRewPos[i]]))
+        for z in range (len(posRewPos2)):
+            posRewsSize2.append(z+1)
+            posRews2.append(float(y[posRewPos2[z]]))
+        for u in range (len(posRewPos3)):
+            posRewsSize3.append(u+1)
+            posRews3.append(float(y[posRewPos3[u]]))
+        oldLength = len(posRewsSize)
+        oldLength2 = len(posRewsSize2)
+        oldLength3 = len(posRewsSize3)
+        for i in range(4000 - len(posRewsSize)):
+            posRewsSize.append(i+oldLength)
+            posRews.append(posRews[len(posRewsSize)-5])
+        for i in range(4000 - len(posRewsSize2)):
+            posRewsSize2.append(i+oldLength2)
+            posRews2.append(posRews2[len(posRewsSize2)-5])
+        for i in range(4000 - len(posRewsSize3)):
+            posRewsSize3.append(i+oldLength3)
+            posRews3.append(posRews3[len(posRewsSize3)-5])
+        plt.xlim(0,4000)
+        plt.title("Graph to show how the scores converge over training iteration")
+        plt.xlabel("Number of Epochs")
+        plt.ylabel("Score")
+        plt.plot(posRewsSize, posRews)
+        plt.plot(posRewsSize2,posRews2,color='r')
+        plt.plot(posRewsSize3,posRews3, color='g')
         plt.show()
-
-
-
 
 def ratevscoreGraph(filename,type):
     plt.figure()

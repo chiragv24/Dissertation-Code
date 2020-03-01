@@ -1,7 +1,3 @@
-# from tkinter import *
-import asyncio
-from threading import Thread
-# import threading
 from uiTestingWorkerCode import mainWorker
 import tkinter as tk
 

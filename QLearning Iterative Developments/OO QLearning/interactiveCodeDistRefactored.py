@@ -6,39 +6,25 @@ import re
 import numpy as np
 from tkinter import *
 import abc
-from microIntegrationInteractive import voiceIntegration
+from microIntegration import voiceIntegration
 
-class QLearnSuperClass(abc.ABC):
+class QLearnDistOrthogonal():
     nextActionIndex = 0
 
     def __init__(self):
-        self.initState = 0
-        self.gamma = 0.5
+        self.actions = [0, 1, 2, 3]
+        self.Q = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0]]
+        self.states = [0, 1, 2]
         self.nextActIndex = 0
-        self.Q = []
-        self.states = []
-        self.rewards = [3, 0, -3]
-        self.rate = 0.3
-
-    @abc.abstractmethod
-    def robotMovement(self, *args, **kwargs):
-        pass
-
-    @abc.abstractmethod
-    async def nextAction(self, *args, **kwargs):
-        pass
-
-    @abc.abstractmethod
-    def findCurrentState(self, robot: cozmo.robot.Robot):
-        pass
-
-    @abc.abstractmethod
-    def trainCozmo(self, *args, **kwargs):
-        pass
-
-    @abc.abstractmethod
-    def testCozmo(self, *args, **kwargs):
-        pass
+        self.voice = voiceIntegration()
+        self.maxAction = 0
+        self.totalScore = 0
+        self.cubeDist = 0
+        self.cubeMoved = False
+        self.faceDist = 0
+        self.gamma = 0.5
+        self.rewards = [3,0,-3]
+        self.rate = 0.4
 
     def startLoop(self, loop):
         asyncio.set_event_loop(loop)
@@ -85,7 +71,6 @@ class QLearnSuperClass(abc.ABC):
             await robot.play_anim("anim_memorymatch_successhand_cozmo_01").wait_for_completed()
             self.scoringSystem(state,action,maxValue,self.rewards[0])
         elif scores[1]:
-            #self.roundQ[currentState][nextActionIndex] = round((1 - self.rate) * self.Q[currentState][nextActionIndex] + (self.rate * (self.gamma * maxValue)), 2)
             await robot.say_text("Noted").wait_for_completed()
             await robot.play_anim("anim_memorymatch_reacttopattern_standard_01").wait_for_completed()
             self.scoringSystem(state,action,maxValue,self.rewards[1])
@@ -139,26 +124,6 @@ class QLearnSuperClass(abc.ABC):
             self.totalScore = self.totalScore + self.Q[3][maxStop]
             print(str(self.totalScore))
 
-
-###############################################################################################################################################
-
-class QLearnDistOrthogonal(QLearnSuperClass):
-    nextActionIndex = 0
-
-    def __init__(self):
-        super(QLearnDistOrthogonal, self).__init__()
-        self.actions = [0, 1, 2, 3]
-        self.Q = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0]]
-        self.states = [0, 1, 2]
-        self.nextActIndex = 0
-        self.voice = voiceIntegration()
-        self.loop = asyncio.get_event_loop()
-        self.maxAction = 0
-        self.totalScore = 0
-        self.cubeDist = 0
-        self.cubeMoved = False
-        self.faceDist = 0
-
     async def nextAction(self, currentState, robot: cozmo.robot.Robot):
         nextActRand = randint(0, 3)
         await self.robotMovement(nextActRand, currentState, robot)
@@ -211,7 +176,6 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                 face = await robot.world.wait_for_observed_face(timeout=5)
                 self.cubeMoved = False
                 if face and face.is_visible:
-                    print("kobe")
                     for face in robot.world.visible_faces:
                         await robot.say_text("Face found").wait_for_completed()
                         self.faceDist = abs(face.pose.position.x - robot.pose.position.x)
@@ -290,7 +254,7 @@ class QLearnDistOrthogonal(QLearnSuperClass):
                 compStop = re.search(r"top\b", backVoice.speech)
                 print("THIS IS THE BACK VOICE " + backVoice.speech)
                 if compMove or compStop:
-                    await super().speechCheck(robot, voice, backVoice)
+                    await self.speechCheck(robot, voice, backVoice)
                     backVoice.speech = ""
                 print("This is train loop " + str(i))
                 currentState = await self.findCurrentState(robot)
@@ -314,7 +278,7 @@ class QLearnDistOrthogonal(QLearnSuperClass):
             compMove = re.search(r"ove\b", voice.speech)
             compStop = re.search(r"top\b", voice.speech)
             if compMove or compStop:
-                    await super().speechCheckTest(robot, voice)
+                    await self.speechCheckTest(robot, voice)
                     voice.speech = ""
             else:
                 currentState = await self.findCurrentState(robot)

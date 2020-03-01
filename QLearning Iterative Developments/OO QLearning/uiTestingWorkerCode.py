@@ -1,9 +1,7 @@
 from interactiveCodeDistRefactored import QLearnDistOrthogonal
 from threading import Thread
-import threading
 import asyncio
 import cozmo
-import time
 from microIntegrationInteractive import voiceIntegration
 from microIntegration import voiceIntegrationBack
 
